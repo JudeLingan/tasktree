@@ -1,0 +1,56 @@
+#include <sqlite3.h>
+
+#ifndef UTIL_H
+#define UTIL_H
+
+typedef struct task task;
+
+typedef struct tasklist {
+	task* tasks;
+	int ntasks;
+} tasklist;
+
+struct task {
+	int id;
+	char *name;
+	char *details;
+	tasklist tl;
+};
+
+/*
+ * The structure the program is named after, used to make, manage, and find tasks in a tree structure.
+ * Use new_tasktree() as a constructor, and free_tasktree(tasktree) as a destructor.
+ * It is better to not modify any elements of the structure directly, and instead use functions.
+ * In case modifying directly is necessary, these are the elements
+ * 
+ * sqlite3* database;
+ * tasklist tl;
+*/
+typedef struct tasktree {
+	sqlite3 *database;
+	tasklist tl;
+} tasktree;
+
+typedef struct stringlist {
+	char **items;
+	int length;
+} stringlist;
+
+
+void stringlist_free_elements(stringlist sl);
+void stringlist_free(stringlist *sl);
+int append_string(char *s, char c);
+task new_task(char *name, char *data);
+void task_free_elements(task tsk);
+int task_free(task *tsk);
+int task_add_task(task* branch, task tsk);
+int print_task(task tsk);
+char *get_input();
+stringlist stringlist_input();
+
+void tasktree_load(tasktree *tree, char *path);
+void tasktree_unload(tasktree *tree);
+void tasktree_add_task(tasktree *tree, task tsk, char* path);
+task *tasktree_get_task(tasktree tree, char *path);
+
+#endif
