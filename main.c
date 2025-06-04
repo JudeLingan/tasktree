@@ -2,14 +2,15 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include "util.h"
+#include "tasktree.h"
 
 tasktree tree;
 
 int main() {
-	tasktree_load(&tree, NULL);
+	tasktree_load(&tree, "/home/jude/.local/share/tasktree/tasks.db");
 
 	while(true) {
+		//print text input
 		printf("> ");
 
 		stringlist input = stringlist_input();
