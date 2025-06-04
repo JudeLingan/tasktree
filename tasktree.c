@@ -74,6 +74,8 @@ void stringlist_free(stringlist *sl) {
 
 void sqlite3_exec_by_format(sqlite3 *database, char *format, stringlist parameters, int (*callback)(void *, int, char **, char **), void *var) {
 	//set sql_length to length of format + parameters + 1
+	if (format == NULL)
+		return;
 	int sql_length = strlen(format) + 1;
 	for (int i = 0; i < parameters.length; ++i) sql_length += strlen(parameters.items[i]);
 
@@ -208,11 +210,12 @@ void tasklist_free_elements(tasklist *tl) {
 	tl->tasks = NULL;
 }
 
-task new_task(char *name, char *details) {
+task new_task(char *name, char *details, long long id) {
 	task tsk;
 
 	tsk.name = name;
 	tsk.details = details;
+	tsk.id = id;
 
 	tsk.tl.tasks = NULL;
 	tsk.tl.ntasks = 0;
@@ -261,8 +264,9 @@ typedef struct tree_task {
 } tree_task;
 
 static int callback_load_child_tasks_from_db(void *in, int length, char **values, char **columns) {
-	char *name;
-	char *details;
+	char *name = NULL;
+	char *details = NULL;
+	long long id = -1;
 	for (int i = 0; i < length; ++i) {
 		char *val = values[i];
 		char *column = columns[i];
@@ -275,7 +279,7 @@ static int callback_load_child_tasks_from_db(void *in, int length, char **values
 		}
 	}
 	
-	task tsk = new_task(name, details);
+	task tsk = new_task(name, details, id);
 	tree_task* tt = (tree_task*)in;
 	if (tt->task == NULL) {
 		tasktree_add_task(tt->tree, tsk, NULL);
@@ -292,6 +296,16 @@ void load_child_tasks_from_db(tasktree *tree, task *parent) {
 		.length = 1,
 		.items = (char**)malloc(sizeof(char*)*1),
 	};
+
+	if (parent == NULL) {
+		params.items[0] = (char*)malloc(sizeof(char*)*2);
+		strncpy(params.items[0], "0", 2);
+	}
+	else {
+		int len = snprintf(NULL, 0, "%d", parent->id);
+		params.items[0] = (char*)malloc(len + 1);
+		snprintf(params.items[0], len + 1, "%d", parent->id);
+	}
 
 	tree_task tt = {
 		.tree = tree,
@@ -362,11 +376,8 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 		}
 	}
 
-	//bypass database entry if not found
-	if (tree->db == NULL) {
-		printf("NO DB\n");
-		return;
-	}
+	//bypass database entry if database not found or task is already inserted
+	if (tree->db == NULL || tsk.id != 0) return;
 
 	printf("db found\n");
 
