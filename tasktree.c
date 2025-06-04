@@ -2,7 +2,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <sqlite3.h>
+
+/*GENERAL FUNCTIONS*/
+char* malloc_sprintf(const char* restrict format, ...) {
+	va_list args;
+
+	va_start(args, format);
+	size_t len = vsnprintf(NULL, 0, format, args) + 1;
+	va_end(args);
+
+	char dest[len];
+
+	printf("len: %lu\nformat: %s\n", len, format);
+
+	va_start(args, format);
+	vsnprintf(dest, len, format, args);
+	va_end(args);
+
+	return strdup(dest);
+}
 
 int append_string(char *s, char c) {
 	int len = strlen(s);
@@ -11,6 +31,7 @@ int append_string(char *s, char c) {
 	return 0;
 }
 
+/*STRINGLIST FUNCTIONS*/
 stringlist split_by_char(char *str, char ch) {
 	int buffer_length = strlen(str) + 1;
 	char buffer[buffer_length];
@@ -377,7 +398,8 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	}
 
 	//bypass database entry if database not found or task is already inserted
-	if (tree->db == NULL || tsk.id != 0) return;
+	if (tree->db == NULL || tsk.id != 0)
+		return;
 
 	printf("db found\n");
 
@@ -399,7 +421,7 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	}
 	else {
 		params.items[2] = (char*)malloc(sizeof(char)*12);
-		snprintf("%d", 11, params.items[2], parent->id);
+		snprintf(params.items[2], parent->id, "%d", 11);
 	}
 
 	//execute sqlite code

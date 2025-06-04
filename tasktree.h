@@ -37,6 +37,7 @@ typedef struct stringlist {
 } stringlist;
 
 
+char *malloc_sprintf(const char* format, ...);
 void stringlist_free_elements(stringlist sl);
 void stringlist_free(stringlist *sl);
 int append_string(char *s, char c);
