@@ -25,7 +25,7 @@ int main() {
 			printf("Enter any details: ");
 			char *tasktext = get_input();
 
-			task tsk = new_task(taskname, tasktext, 0);
+			task tsk = new_task(taskname, tasktext, -1);
 			char *path = NULL;
 
 			if (input.length == 2) {

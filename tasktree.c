@@ -208,7 +208,6 @@ void task_free_elements(task tsk) {
 
 	free(tsk.name);
 	free(tsk.details);
-	free(tsk.tl.tasks);
 }
 
 int task_free(task *tsk) {
@@ -249,7 +248,7 @@ static int callback_load_child_tasks_from_db(void *in, int length, char **values
 			name = strdup(val);
 		}
 		else if (!strcmp(column, "details")) {
-			details = val == NULL ? "" : strdup(val);
+			details = val == NULL ? strdup("") : strdup(val);
 		}
 		else if (!strcmp(column, "id")) {
 			id = atoi(val);
