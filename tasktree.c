@@ -249,7 +249,7 @@ static int callback_load_child_tasks_from_db(void *in, int length, char **values
 			name = strdup(val);
 		}
 		else if (!strcmp(column, "details")) {
-			details = val;
+			details = val == NULL ? "" : strdup(val);
 		}
 		else if (!strcmp(column, "id")) {
 			id = atoi(val);
@@ -339,13 +339,10 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	}
 
 	//bypass database entry if database not found or task is already inserted
-	if (tree->db == NULL || tsk.id != 0)
+	if (tree->db == NULL || tsk.id > 0)
 		return;
 
-	printf("db found\n");
-
 	//enter new task into database
-	char sql_format[] = "INSERT INTO tasks (name, details, parent) VALUES ('%s', '%s', %lld);";
 
 	long long parentid = 0;
 
@@ -353,7 +350,14 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 		parentid = parent->id;
 	}
 	//execute sqlite code
-	sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, parentid);
+	if (tsk.details != NULL) {
+		char sql_format[] = "INSERT INTO tasks (name, details, parent) VALUES ('%s', '%s', %lld);";
+		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, tsk.name, tsk.details, parentid);
+	}
+	else {
+		char sql_format[] = "INSERT INTO tasks (name, parent) VALUES ('%s', %lld);";
+		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, tsk.name, tsk.details, parentid);
+	}
 }
 
 char *get_input() {
