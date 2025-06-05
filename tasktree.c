@@ -94,46 +94,6 @@ void stringlist_free(stringlist *sl) {
 	free(sl);
 }
 
-//executes sqlite code using printf-like formatting
-//void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, char *format, ...) {
-//	//copies formatted text to sql_code variable
-//	va_list args;
-//
-//	va_start(args, format);
-//	size_t len = vsnprintf(NULL, 0, format, args) + 1;
-//	va_end(args);
-//
-//	char sql_code[len];
-//
-//	printf("len: %lu\nformat: %s\n", len, format);
-//
-//	va_start(args, format);
-//	vsnprintf(sql_code, len, format, args);
-//	va_end(args);
-//
-//	char* sql_error = NULL;
-//
-//	//uses passed database to run sql_code, running callback on each item and generating sql_error
-//	sqlite3_exec(
-//		database,
-//		sql_code,
-//		callback,
-//		var,
-//		&sql_error
-//	);
-//
-//	//handle sql_error
-//	if (sql_error != NULL) {
-//		printf("SQL ERROR: %s\n", sql_error);
-//		sqlite3_free(sql_error);
-//	}
-//	else {
-//		printf("SQL \"%s\" SUCCESSFUL\n", sql_code);
-//	}
-//
-//	free(sql_error);
-//}
-
 tasklist new_tasklist() {
 	tasklist tl = {
 		.tasks = NULL,
@@ -277,11 +237,6 @@ int print_task(task tsk) {
 	return 0;
 }
 
-typedef struct tree_task {
-	tasktree *tree;
-	task *task;
-} tree_task;
-
 static int callback_load_child_tasks_from_db(void *in, int length, char **values, char **columns) {
 	char *name = NULL;
 	char *details = NULL;
@@ -317,11 +272,6 @@ void load_child_tasks_from_db(tasktree *tree, task *parent) {
 	if (parent != NULL) {
 		parentid = parent->id;
 	}
-
-	tree_task tt = {
-		.tree = tree,
-		.task = parent,
-	};
 
 	tasklist *tl = parent == NULL ? &tree->tl : &parent->tl;
 	sqlite3_exec_by_format(tree->db, callback_load_child_tasks_from_db, tl, "SELECT * FROM tasks WHERE parent = %d", parentid);
