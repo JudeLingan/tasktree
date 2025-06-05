@@ -1,5 +1,5 @@
 flags = -Wall -Wextra -lsqlite3 -g
-modules = tasktree.h tasktree.c
+modules = util.h util.c tasktree.h tasktree.c
 
 all: 
 	gcc $(flags) -o tasktree main.c $(modules)

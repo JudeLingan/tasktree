@@ -1,7 +1,7 @@
 #include <sqlite3.h>
 
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef TASKTREE_H
+#define TASKTREE_H
 
 typedef struct task task;
 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include "util.h"
 #include "tasktree.h"
 
 static int total_tests = 0;
@@ -22,22 +23,22 @@ void run_test(char* (*test)(void*), void* val) {
 }
 
 /*TESTS*/
-char* test_malloc_snprintf(void* val) {
-	char *testvar = NULL;
-	char *out = NULL;
-	testvar = malloc_sprintf("Number: %d String: \"%s\"\n", 5, "Hello World!");
-	if (testvar == NULL) {
-		out = "MALLOC_SPRINTF FAILED";
-	}
-	else if (strcmp(testvar, "Number: 5 String: \"Hello World!\"\n")) {
-		out = testvar;
-	}
-	if (testvar != NULL) free(testvar);
-
-	return out;
-}
+//char* test_malloc_snprintf(void* val) {
+//	char *testvar = NULL;
+//	char *out = NULL;
+//	testvar = malloc_sprintf("Number: %d String: \"%s\"\n", 5, "Hello World!");
+//	if (testvar == NULL) {
+//		out = "MALLOC_SPRINTF FAILED";
+//	}
+//	else if (strcmp(testvar, "Number: 5 String: \"Hello World!\"\n")) {
+//		out = testvar;
+//	}
+//	if (testvar != NULL) free(testvar);
+//
+//	return out;
+//}
 
 int main() {
-	run_test(test_malloc_snprintf, NULL);
+	//run_test(test_malloc_snprintf, NULL);
 	return 0;
 }

@@ -1,9 +1,10 @@
-#include "tasktree.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <sqlite3.h>
+#include "tasktree.h"
+#include "util.h"
 
 /*GENERAL FUNCTIONS*/
 char* malloc_sprintf(const char* restrict format, ...) {
@@ -94,44 +95,44 @@ void stringlist_free(stringlist *sl) {
 }
 
 //executes sqlite code using printf-like formatting
-void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, char *format, ...) {
-	//copies formatted text to sql_code variable
-	va_list args;
-
-	va_start(args, format);
-	size_t len = vsnprintf(NULL, 0, format, args) + 1;
-	va_end(args);
-
-	char sql_code[len];
-
-	printf("len: %lu\nformat: %s\n", len, format);
-
-	va_start(args, format);
-	vsnprintf(sql_code, len, format, args);
-	va_end(args);
-
-	char* sql_error = NULL;
-
-	//uses passed database to run sql_code, running callback on each item and generating sql_error
-	sqlite3_exec(
-		database,
-		sql_code,
-		callback,
-		var,
-		&sql_error
-	);
-
-	//handle sql_error
-	if (sql_error != NULL) {
-		printf("SQL ERROR: %s\n", sql_error);
-		sqlite3_free(sql_error);
-	}
-	else {
-		printf("SQL \"%s\" SUCCESSFUL\n", sql_code);
-	}
-
-	free(sql_error);
-}
+//void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, char *format, ...) {
+//	//copies formatted text to sql_code variable
+//	va_list args;
+//
+//	va_start(args, format);
+//	size_t len = vsnprintf(NULL, 0, format, args) + 1;
+//	va_end(args);
+//
+//	char sql_code[len];
+//
+//	printf("len: %lu\nformat: %s\n", len, format);
+//
+//	va_start(args, format);
+//	vsnprintf(sql_code, len, format, args);
+//	va_end(args);
+//
+//	char* sql_error = NULL;
+//
+//	//uses passed database to run sql_code, running callback on each item and generating sql_error
+//	sqlite3_exec(
+//		database,
+//		sql_code,
+//		callback,
+//		var,
+//		&sql_error
+//	);
+//
+//	//handle sql_error
+//	if (sql_error != NULL) {
+//		printf("SQL ERROR: %s\n", sql_error);
+//		sqlite3_free(sql_error);
+//	}
+//	else {
+//		printf("SQL \"%s\" SUCCESSFUL\n", sql_code);
+//	}
+//
+//	free(sql_error);
+//}
 
 tasklist new_tasklist() {
 	tasklist tl = {
@@ -142,6 +143,7 @@ tasklist new_tasklist() {
 }
 
 int tasklist_increment_tasks(tasklist* tl) {
+	printf("ntasks: %d\n", tl->ntasks);
 	task *new_tasks;
 	if (tl->tasks != NULL) {
 		printf("%p\n", tl->tasks);
@@ -157,6 +159,7 @@ int tasklist_increment_tasks(tasklist* tl) {
 	}
 
 	tl->tasks = new_tasks;
+	++tl->ntasks;
 
 	return 0;
 }
@@ -207,9 +210,8 @@ int tasklist_add_task(tasklist *tl, task t) {
 		return 1;
 	}
 
-	tl->tasks[tl->ntasks] = t;
-	printf("task %d is %s\n", tl->ntasks, tl->tasks[tl->ntasks].name);
-	tl->ntasks += 1;
+	tl->tasks[tl->ntasks - 1] = t;
+	printf("task %d is %s\n", tl->ntasks, tl->tasks[tl->ntasks - 1].name);
 	printf("new ntasks is %d\n", tl->ntasks);
 
 	return 0;
@@ -289,39 +291,31 @@ static int callback_load_child_tasks_from_db(void *in, int length, char **values
 		char *column = columns[i];
 
 		if (!strcmp(column, "name")) {
-			name = val;
+			name = strdup(val);
 		}
 		else if (!strcmp(column, "details")) {
 			details = val;
 		}
+		else if (!strcmp(column, "id")) {
+			id = atoi(val);
+		}
 	}
+
+	if (name == NULL)
+		return 1;
 	
+	tasklist *tl = (tasklist*)in;
 	task tsk = new_task(name, details, id);
-	tree_task* tt = (tree_task*)in;
-	if (tt->task == NULL) {
-		tasktree_add_task(tt->tree, tsk, NULL);
-	}
-	else {
-		task_add_task(tt->task, tsk);
-	}
+	tasklist_add_task(tl, tsk);
 	return 0;
 }
 
 void load_child_tasks_from_db(tasktree *tree, task *parent) {
 	printf("loading tasks\n");
-	stringlist params = {
-		.length = 1,
-		.items = (char**)malloc(sizeof(char*)*1),
-	};
 
-	if (parent == NULL) {
-		params.items[0] = (char*)malloc(sizeof(char*)*2);
-		strncpy(params.items[0], "0", 2);
-	}
-	else {
-		int len = snprintf(NULL, 0, "%d", parent->id);
-		params.items[0] = (char*)malloc(len + 1);
-		snprintf(params.items[0], len + 1, "%d", parent->id);
+	int parentid = 0;
+	if (parent != NULL) {
+		parentid = parent->id;
 	}
 
 	tree_task tt = {
@@ -329,10 +323,11 @@ void load_child_tasks_from_db(tasktree *tree, task *parent) {
 		.task = parent,
 	};
 
-	sqlite3_exec_by_format(tree->db, "SELECT * FROM tasks WHERE parent = %", params, callback_load_child_tasks_from_db, &tt);
+	tasklist *tl = parent == NULL ? &tree->tl : &parent->tl;
+	sqlite3_exec_by_format(tree->db, callback_load_child_tasks_from_db, tl, "SELECT * FROM tasks WHERE parent = %d", parentid);
 
-	for(int i = 0; i < parent->tl.ntasks; ++i) {
-		load_child_tasks_from_db(tree, &parent->tl.tasks[i]);
+	for(int i = 0; i < tl->ntasks; ++i) {
+		load_child_tasks_from_db(tree, &tl->tasks[i]);
 	}
 }
 
