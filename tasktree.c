@@ -93,31 +93,26 @@ void stringlist_free(stringlist *sl) {
 	free(sl);
 }
 
-void sqlite3_exec_by_format(sqlite3 *database, char *format, stringlist parameters, int (*callback)(void *, int, char **, char **), void *var) {
-	//set sql_length to length of format + parameters + 1
-	if (format == NULL)
-		return;
-	int sql_length = strlen(format) + 1;
-	for (int i = 0; i < parameters.length; ++i) sql_length += strlen(parameters.items[i]);
+//executes sqlite code using printf-like formatting
+void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, char *format, ...) {
+	//copies formatted text to sql_code variable
+	va_list args;
 
-	char sql_code[sql_length];
-	//save completed code into "sql_code"
-	
-	stringlist format_split = split_by_char(format, '%');
+	va_start(args, format);
+	size_t len = vsnprintf(NULL, 0, format, args) + 1;
+	va_end(args);
 
-	if (parameters.length + 1 != format_split.length) {
-		printf("FORMAT ERROR: wrong amount of parameters\n");
-		return;
-	}
+	char sql_code[len];
 
-	strncpy(sql_code, format_split.items[0], sql_length);
-	for (int i = 1; i < format_split.length; ++i) {
-		strcat(sql_code, parameters.items[i - 1]);
-		strcat(sql_code, format_split.items[i]);
-	}
+	printf("len: %lu\nformat: %s\n", len, format);
+
+	va_start(args, format);
+	vsnprintf(sql_code, len, format, args);
+	va_end(args);
 
 	char* sql_error = NULL;
 
+	//uses passed database to run sql_code, running callback on each item and generating sql_error
 	sqlite3_exec(
 		database,
 		sql_code,
@@ -126,6 +121,7 @@ void sqlite3_exec_by_format(sqlite3 *database, char *format, stringlist paramete
 		&sql_error
 	);
 
+	//handle sql_error
 	if (sql_error != NULL) {
 		printf("SQL ERROR: %s\n", sql_error);
 		sqlite3_free(sql_error);
@@ -134,7 +130,7 @@ void sqlite3_exec_by_format(sqlite3 *database, char *format, stringlist paramete
 		printf("SQL \"%s\" SUCCESSFUL\n", sql_code);
 	}
 
-	stringlist_free_elements(format_split);
+	free(sql_error);
 }
 
 tasklist new_tasklist() {
@@ -404,28 +400,15 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	printf("db found\n");
 
 	//enter new task into database
-	char sql_format[] = "INSERT INTO tasks (name, details, parent) VALUES ('%', '%', %);";
+	char sql_format[] = "INSERT INTO tasks (name, details, parent) VALUES ('%s', '%s', %lld);";
 
-	stringlist params = {
-		.length = 3,
-		.items = (char**)malloc(sizeof(char*)*3),
-	};
+	long long parentid = 0;
 
-	//assign name and details
-	params.items[0] = tsk.name;
-	params.items[1] = tsk.details;
-
-	//assign parent
-	if (parent == NULL) {
-		params.items[2] = "0";
+	if (parent != NULL) {
+		parentid = parent->id;
 	}
-	else {
-		params.items[2] = (char*)malloc(sizeof(char)*12);
-		snprintf(params.items[2], parent->id, "%d", 11);
-	}
-
 	//execute sqlite code
-	sqlite3_exec_by_format(tree->db, sql_format, params, NULL, NULL);
+	sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, parentid);
 }
 
 char *get_input() {
