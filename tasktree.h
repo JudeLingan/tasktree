@@ -1,4 +1,5 @@
 #include <sqlite3.h>
+#include "util.h"
 
 #ifndef TASKTREE_H
 #define TASKTREE_H
@@ -31,15 +32,7 @@ typedef struct tasktree {
 	tasklist tl;
 } tasktree;
 
-typedef struct stringlist {
-	char **items;
-	int length;
-} stringlist;
-
-
 char *malloc_sprintf(const char* format, ...);
-void stringlist_free_elements(stringlist sl);
-void stringlist_free(stringlist *sl);
 int append_string(char *s, char c);
 task new_task(char *name, char *data, long long id);
 void task_free_elements(task tsk);
@@ -47,8 +40,6 @@ int task_free(task *tsk);
 int task_add_task(task* branch, task tsk);
 int print_task(task tsk);
 char *get_input();
-stringlist stringlist_input();
-
 void tasktree_load(tasktree *tree, char *path);
 void tasktree_unload(tasktree *tree);
 void tasktree_add_task(tasktree *tree, task tsk, char* path);

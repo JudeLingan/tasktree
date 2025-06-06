@@ -2,98 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <sqlite3.h>
 #include "tasktree.h"
 #include "util.h"
 
-/*GENERAL FUNCTIONS*/
-char* malloc_sprintf(const char* restrict format, ...) {
-	va_list args;
 
-	va_start(args, format);
-	size_t len = vsnprintf(NULL, 0, format, args) + 1;
-	va_end(args);
-
-	char dest[len];
-
-	printf("len: %lu\nformat: %s\n", len, format);
-
-	va_start(args, format);
-	vsnprintf(dest, len, format, args);
-	va_end(args);
-
-	return strdup(dest);
-}
-
-int append_string(char *s, char c) {
-	int len = strlen(s);
-	s[len] = c;
-	s[len + 1] = '\0';
-	return 0;
-}
-
-/*STRINGLIST FUNCTIONS*/
-stringlist split_by_char(char *str, char ch) {
-	int buffer_length = strlen(str) + 1;
-	char buffer[buffer_length];
-	strncpy(buffer, "", buffer_length);
-
-	stringlist result;
-	result.items = (char**)malloc(sizeof(char*));
-	result.length = 0;
-
-	if (str == NULL || buffer_length == 0) {
-		printf("ERROR: null string\n");
-		result.items = NULL;
-		result.length = 0;
-		return result;
-	}
-
-	for (long unsigned int i = 0; i <= strlen(str); ++i) {
-		if (str[i] == ch || str[i] == '\0') {
-
-			char **newitems = (char**)realloc(
-				result.items,
-				sizeof(char*)*(result.length + 1)
-			);
-			
-			if (newitems == NULL) {
-				printf("ERROR: realloc failed: null pointer exception\n");
-				result.items = NULL;
-				result.length = 0;
-				return result;
-			}
-
-			result.items = newitems;
-			result.items[result.length] = strdup(buffer);
-			++result.length;
-
-			strncpy(buffer, "", buffer_length);
-		} 
-		else if (str[i] == '\\') {
-			++i;
-			append_string(buffer, str[i]);
-		}
-		else {
-			append_string(buffer, str[i]);
-		}
-	}
-
-	return result;
-}
-
-void stringlist_free_elements(stringlist sl) {
-	for (int i = 0; i < sl.length; ++i) {
-		free(sl.items[i]);
-	}
-	free(sl.items);
-}
-
-void stringlist_free(stringlist *sl) {
-	stringlist_free_elements(*sl);
-	free(sl);
-}
-
+/*TASKLIST FUNCTIONS*/
 tasklist new_tasklist() {
 	tasklist tl = {
 		.tasks = NULL,
@@ -189,6 +104,7 @@ void tasklist_free_elements(tasklist *tl) {
 	tl->tasks = NULL;
 }
 
+/*TASK FUNCTIONS*/
 task new_task(char *name, char *details, long long id) {
 	task tsk;
 
@@ -236,10 +152,12 @@ int print_task(task tsk) {
 	return 0;
 }
 
+/*TASKTREE FUNCTIONS*/
 static int callback_load_child_tasks_from_db(void *in, int length, char **values, char **columns) {
 	char *name = NULL;
 	char *details = NULL;
 	long long id = -1;
+
 	for (int i = 0; i < length; ++i) {
 		char *val = values[i];
 		char *column = columns[i];
@@ -266,14 +184,18 @@ static int callback_load_child_tasks_from_db(void *in, int length, char **values
 
 void load_child_tasks_from_db(tasktree *tree, task *parent) {
 	printf("loading tasks\n");
-
 	int parentid = 0;
 	if (parent != NULL) {
 		parentid = parent->id;
 	}
 
 	tasklist *tl = parent == NULL ? &tree->tl : &parent->tl;
-	sqlite3_exec_by_format(tree->db, callback_load_child_tasks_from_db, tl, "SELECT * FROM tasks WHERE parent = %d", parentid);
+	sqlite3_exec_by_format(
+		tree->db, callback_load_child_tasks_from_db,
+		tl,
+		"SELECT * FROM tasks WHERE parent = %d",
+		parentid
+	);
 
 	for(int i = 0; i < tl->ntasks; ++i) {
 		load_child_tasks_from_db(tree, &tl->tasks[i]);
@@ -300,6 +222,15 @@ void tasktree_load(tasktree *tree, char *path) {
 		printf("SQL CONNECTION FAILED\n");
 	}
 	
+	if (!sqlite3_has_table(db, "tasks")) {
+		sqlite3_exec(
+			db,
+			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, name TEXT NOT NULL, parent INTEGER, details TEXT);",
+			NULL,
+			NULL,
+			NULL
+		);
+	}
 
 	tree->db = db;
 	tree->tl = tl;
