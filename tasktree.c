@@ -333,12 +333,17 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 	strncpy(numberless, name, i);
 	numberless[i] = '\0';
 
-	//increases number until name is available, then assigns it to "out"
+	//increases number until name is available, then assigns it to "result"
 	num = atoi(strnum);
 	char *result = NULL;
 	do {
 		free(result);
-		result = malloc_sprintf("%s%d", numberless, num);
+		if (num == 0) {
+			result = malloc_sprintf("%s", numberless);
+		}
+		else {
+			result = malloc_sprintf("%s%d", numberless, num);
+		}
 		num += 1;
 	} while (tasklist_get_task_by_name(tl, result) != NULL);
 
@@ -370,11 +375,11 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	//execute sqlite code
 	if (tsk.details != NULL) {
 		char sql_format[] = "INSERT INTO tasks (name, details, parent) VALUES ('%s', '%s', %lld);";
-		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, tsk.name, tsk.details, parentid);
+		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, taskname, tsk.details, parentid);
 	}
 	else {
 		char sql_format[] = "INSERT INTO tasks (name, parent) VALUES ('%s', %lld);";
-		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, tsk.name, tsk.details, parentid);
+		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, taskname, tsk.details, parentid);
 	}
 }
 
