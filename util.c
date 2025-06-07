@@ -3,26 +3,59 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include <sqlite3.h>
 #include "util.h"
 
-void handle_error(char *err);
-
 /*GENERAL FUNCTIONS*/
-void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, char *format, ...) {
+bool is_pure_num(const char *str) {
+	for (int i = 0; str[i] != '\0'; ++i) {
+		printf("%d", i);
+		if(!isdigit(str[i]))
+			return false;
+	}
+	return true;
+}
+
+char *malloc_vsprintf(const char* restrict format, va_list args) {
+	va_list args2;
+
+	va_copy(args2, args);
+	size_t len = vsnprintf(NULL, 0, format, args) + 1;
+
+	char dest[len];
+
+	printf("len: %lu\nformat: %s\n", len, format);
+
+	vsnprintf(dest, len, format, args2);
+	va_end(args2);
+
+	return strdup(dest);
+}
+
+char *malloc_sprintf(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	char *out = malloc_vsprintf(format, args);
+	va_end(args);
+	return out;
+}
+
+void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...) {
 	//copies formatted text to sql_code variable
 	va_list args;
 
 	va_start(args, format);
-	size_t len = vsnprintf(NULL, 0, format, args) + 1;
-	va_end(args);
-
-	char sql_code[len];
-
-	printf("len: %lu\nformat: %s\n", len, format);
-
-	va_start(args, format);
-	vsnprintf(sql_code, len, format, args);
+//	size_t len = vsnprintf(NULL, 0, format, args) + 1;
+//	va_end(args);
+//
+//	char sql_code[len];
+//
+//	printf("len: %lu\nformat: %s\n", len, format);
+//
+//	va_start(args, format);
+//	vsnprintf(sql_code, len, format, args);
+	char *sql_code = malloc_vsprintf(format, args);
 	va_end(args);
 
 	char* sql_error = NULL;
@@ -47,6 +80,7 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 		printf("SQL \"%s\" SUCCESSFUL\n", sql_code);
 	}
 
+	free(sql_code);
 	free(sql_error);
 }
 
@@ -67,24 +101,6 @@ bool sqlite3_has_table(sqlite3 *database, char *table) {
 		table
 	);
 	return has_table;
-}
-
-char* malloc_sprintf(const char* restrict format, ...) {
-	va_list args;
-
-	va_start(args, format);
-	size_t len = vsnprintf(NULL, 0, format, args) + 1;
-	va_end(args);
-
-	char dest[len];
-
-	printf("len: %lu\nformat: %s\n", len, format);
-
-	va_start(args, format);
-	vsnprintf(dest, len, format, args);
-	va_end(args);
-
-	return strdup(dest);
 }
 
 int append_string(char *s, char c) {
@@ -112,27 +128,31 @@ bool stringlist_append(stringlist *sl, char *str) {
 }
 
 /*STRINGLIST FUNCTIONS*/
+stringlist new_stringlist() {
+	stringlist out;
+	out.items = (char**)malloc(sizeof(char**));
+	out.length = 0;
+
+	return out;
+}
+
 stringlist split_by_char(char *str, char ch) {
+	stringlist out = new_stringlist();
+
+	if (str == NULL) {
+		handle_error("ERROR: null string\n");
+		out.items = NULL;
+		out.length = 0;
+		return out;
+	}
+
 	int buffer_length = strlen(str) + 1;
 	char buffer[buffer_length];
 	strncpy(buffer, "", buffer_length);
 
-	stringlist result;
-	result.items = (char**)malloc(sizeof(char*));
-	result.length = 0;
-
-	if (str == NULL || buffer_length == 0) {
-		handle_error("ERROR: null string\n");
-		result.items = NULL;
-		result.length = 0;
-		return result;
-	}
-
 	for (long unsigned int i = 0; i <= strlen(str); ++i) {
 		if (str[i] == ch || str[i] == '\0') {
-
-			if (stringlist_append(&result, buffer)) break;
-
+			if (stringlist_append(&out, buffer)) break;
 			strncpy(buffer, "", buffer_length);
 		} 
 		else if (str[i] == '\\') {
@@ -144,7 +164,7 @@ stringlist split_by_char(char *str, char ch) {
 		}
 	}
 
-	return result;
+	return out;
 }
 
 void stringlist_free_elements(stringlist sl) {

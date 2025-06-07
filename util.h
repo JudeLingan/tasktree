@@ -8,8 +8,11 @@ typedef struct stringlist {
 	int length;
 } stringlist;
 
+char *malloc_sprintf(const char *format, ...);
+bool is_pure_num(const char *str);
+void handle_error(char *err);
 bool sqlite3_has_table(sqlite3 *database, char *table);
-void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, char *format, ...);
+void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...);
 int append_string(char *s, char c);
 stringlist split_by_char(char *str, char ch);
 stringlist stringlist_input();

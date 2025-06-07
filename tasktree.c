@@ -9,6 +9,7 @@
 
 
 /*TASKLIST FUNCTIONS*/
+
 tasklist new_tasklist() {
 	tasklist tl = {
 		.tasks = NULL,
@@ -40,7 +41,8 @@ int tasklist_increment_tasks(tasklist* tl) {
 }
 
 /*
-	* Get first task with name in tasklist
+ * Get first task with name in tasklist.
+ * breaks with multiple tasks that have the same name.
 */
 task *tasklist_get_task_by_name(tasklist tl, char *name) {
 	for (int i = 0; i < tl.ntasks; ++i) {
@@ -52,8 +54,10 @@ task *tasklist_get_task_by_name(tasklist tl, char *name) {
 	return NULL;
 }
 
-task *tasklist_get_task_by_path(tasklist tl, char *str) {
-	stringlist sl = split_by_char(str, '/');
+task *tasklist_get_task_by_path(tasklist tl, char *path) {
+	if (path == NULL)
+		return NULL;
+	stringlist sl = split_by_char(path, '/');
 
 	//remove last element of sl if it is empty, allowing for trailing slash
 	if (!strcmp(sl.items[sl.length - 1], "")) {
@@ -105,11 +109,12 @@ void tasklist_free_elements(tasklist *tl) {
 }
 
 /*TASK FUNCTIONS*/
+
 task new_task(char *name, char *details, long long id) {
 	task tsk;
 
-	tsk.name = name;
-	tsk.details = details;
+	tsk.name = strdup(name);
+	tsk.details = strdup(details);
 	tsk.id = id;
 
 	tsk.tl.tasks = NULL;
@@ -246,34 +251,53 @@ void tasktree_unload(tasktree *tree) {
 task *tasktree_get_task(tasktree tree, char *path) {
 	return tasklist_get_task_by_path(tree.tl, path);
 }
+/*
+ * adds to a number after the name until the name is unique.
+ * this prevents duplicate names.
+ * returns a character pointer with a unique name.
+ */
+char *tasklist_get_next_available_name(tasklist tl, char* name) {
+	char *numberless = NULL;
+	char *strnum = &name[0];
+	int num = 0;
+
+	//sets i to the first character that only has numbers after it
+	int i = 0;
+	for (i = 0; is_pure_num(strnum) == false && strnum[0] != '\0'; ++i) {
+		strnum = &strnum[1];
+	}
+
+	//sets numberless to everything before the number at the end
+	numberless = (char*)malloc(sizeof(char*)*(i+1));
+	strncpy(numberless, name, i);
+	numberless[i] = '\0';
+
+	//increases number until name is available, then assigns it to "out"
+	num = atoi(strnum);
+	while (tasklist_get_task_by_name(tl, name) != NULL) {
+	}
+
+	return numberless;
+}
 
 void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	printf("adding task\n");
 
-	task *parent;
+	task *parent = tasklist_get_task_by_path(tree->tl, path);
+	tasklist *parentlist = path == NULL ? &tree->tl : &parent->tl;
+	char *taskname = tasklist_get_next_available_name(*parentlist, tsk.name);
 
 	//create new task in memory
-	if (path == NULL) {
-		tasklist_add_task(&tree->tl, tsk);
-		parent = NULL;
-	}
-	else {
-		task *parent = tasklist_get_task_by_path(tree->tl, path);
+	if (parentlist == NULL) {
 
-		if (parent == NULL) {
-			printf("task not found\n");
-		}
-		else {
-			task_add_task(parent, tsk);
-		}
 	}
+	tasklist_add_task(parentlist, new_task(taskname, tsk.details, tsk.id));
 
 	//bypass database entry if database not found or task is already inserted
 	if (tree->db == NULL || tsk.id > 0)
 		return;
 
 	//enter new task into database
-
 	long long parentid = 0;
 
 	if (parent != NULL) {
