@@ -274,18 +274,25 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 
 	//increases number until name is available, then assigns it to "out"
 	num = atoi(strnum);
-	while (tasklist_get_task_by_name(tl, name) != NULL) {
-	}
+	char *result = NULL;
+	do {
+		free(result);
+		result = malloc_sprintf("%s%d", numberless, num);
+		num += 1;
+	} while (tasklist_get_task_by_name(tl, result) != NULL);
 
-	return numberless;
+	free(numberless);
+	free(strnum);
+
+	return result;
 }
 
 void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	printf("adding task\n");
 
-	task *parent = tasklist_get_task_by_path(tree->tl, path);
-	tasklist *parentlist = path == NULL ? &tree->tl : &parent->tl;
-	char *taskname = tasklist_get_next_available_name(*parentlist, tsk.name);
+	task *parent = tasklist_get_task_by_path(tree->tl, path);                      //parent task
+	tasklist *parentlist = path == NULL ? &tree->tl : &parent->tl;                 //parent tasklist
+	char *taskname = tasklist_get_next_available_name(*parentlist, tsk.name);      //name of task
 
 	//create new task in memory
 	if (parentlist == NULL) {
