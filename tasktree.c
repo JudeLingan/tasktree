@@ -103,7 +103,10 @@ void tasklist_remove_task(tasklist *tl, long long id) {
 	//set index to index of task with said id in array
 	tasklist new_tl = new_tasklist();
 	for (int i = 0; i < tl->ntasks; ++i) {
-		if (tl->tasks[i].id != id) {
+		if (tl->tasks[i].id == id) {
+			task_free_elements(tl->tasks[i]);
+		}
+		else {
 			tasklist_add_task(&new_tl, tl->tasks[i]);
 		}
 	}
@@ -302,7 +305,7 @@ void tasktree_remove_task(tasktree *tree, task *tsk) {
 	tasktree_remove_task_from_db(tree, tsk->id);
 
 	//remove task from memory
-	task_free(tsk);
+	tasklist_remove_task(tsk->parent, tsk->id);
 }
 
 void tasktree_remove_task_by_path(tasktree *tree, char *path) {
