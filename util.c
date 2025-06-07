@@ -7,14 +7,18 @@
 #include <sqlite3.h>
 #include "util.h"
 
-/*GENERAL FUNCTIONS*/
-bool is_pure_num(const char *str) {
-	for (int i = 0; str[i] != '\0'; ++i) {
-		printf("%d", i);
-		if(!isdigit(str[i]))
-			return false;
-	}
-	return true;
+/*INTERNAL FUNCTIONS*/
+
+int callback_set_true(void *setme, int ncolumns, char **vals, char **columns) {
+	//mark unused variables
+	UNUSED(ncolumns);
+	UNUSED(vals);
+	UNUSED(columns);
+
+	//set setme to true
+	bool *boolset = (bool*)setme;
+	*boolset = true;
+	return 0;
 }
 
 char *malloc_vsprintf(const char* restrict format, va_list args) {
@@ -33,6 +37,16 @@ char *malloc_vsprintf(const char* restrict format, va_list args) {
 	return strdup(dest);
 }
 
+/*GENERAL FUNCTIONS*/
+bool is_pure_num(const char *str) {
+	for (int i = 0; str[i] != '\0'; ++i) {
+		printf("%d", i);
+		if(!isdigit(str[i]))
+			return false;
+	}
+	return true;
+}
+
 char *malloc_sprintf(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
@@ -46,15 +60,6 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 	va_list args;
 
 	va_start(args, format);
-//	size_t len = vsnprintf(NULL, 0, format, args) + 1;
-//	va_end(args);
-//
-//	char sql_code[len];
-//
-//	printf("len: %lu\nformat: %s\n", len, format);
-//
-//	va_start(args, format);
-//	vsnprintf(sql_code, len, format, args);
 	char *sql_code = malloc_vsprintf(format, args);
 	va_end(args);
 
@@ -82,12 +87,6 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 
 	free(sql_code);
 	free(sql_error);
-}
-
-int callback_set_true(void *setme, int ncolumns, char **vals, char **columns) {
-	bool *boolset = (bool*)setme;
-	*boolset = true;
-	return 0;
 }
 
 bool sqlite3_has_table(sqlite3 *database, char *table) {
