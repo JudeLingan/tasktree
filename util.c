@@ -135,7 +135,7 @@ stringlist new_stringlist() {
 	return out;
 }
 
-stringlist split_by_char(char *str, char ch) {
+stringlist split_by_char(const char *str, char ch) {
 	stringlist out = new_stringlist();
 
 	if (str == NULL) {

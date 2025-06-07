@@ -16,6 +16,7 @@ struct task {
 	char *name;
 	char *details;
 	tasklist tl;
+	tasklist *parent;
 };
 
 /*
@@ -32,9 +33,9 @@ typedef struct tasktree {
 	tasklist tl;
 } tasktree;
 
-char *malloc_sprintf(const char* format, ...);
-int append_string(char *s, char c);
-task new_task(char *name, char *data, long long id);
+//char *malloc_sprintf(const char* format, ...);
+//int append_string(char *s, char c);
+task new_task(tasklist *parent, char *name, char *data, long long id);
 void task_free_elements(task tsk);
 int task_free(task *tsk);
 int task_add_task(task* branch, task tsk);
@@ -44,5 +45,6 @@ void tasktree_load(tasktree *tree, char *path);
 void tasktree_unload(tasktree *tree);
 void tasktree_add_task(tasktree *tree, task tsk, char* path);
 task *tasktree_get_task(tasktree tree, char *path);
+void tasktree_remove_task_by_path(tasktree *tree, char *path);
 
 #endif

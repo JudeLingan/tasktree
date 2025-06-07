@@ -25,7 +25,7 @@ int main() {
 			printf("Enter any details: ");
 			char *tasktext = get_input();
 
-			task tsk = new_task(taskname, tasktext, -1);
+			task tsk = new_task(&tree.tl, taskname, tasktext, -1);
 			char *path = NULL;
 
 			if (input.length == 2) {
@@ -51,6 +51,14 @@ int main() {
 				else {
 					print_task(*tsk);
 				}
+			}
+		}
+		else if (!strcmp(input.items[0], "remove")) {
+			if (input.length < 2) {
+				printf("ERROR: 'get' command requires a task path\n");
+			}
+			else {
+				tasktree_remove_task_by_path(&tree, input.items[1]);
 			}
 		}
 		else if (!strcmp(input.items[0], "done")) {

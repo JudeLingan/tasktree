@@ -54,7 +54,7 @@ task *tasklist_get_task_by_name(tasklist tl, char *name) {
 	return NULL;
 }
 
-task *tasklist_get_task_by_path(tasklist tl, char *path) {
+task *tasklist_get_task_by_path(tasklist tl, const char *path) {
 	if (path == NULL)
 		return NULL;
 	stringlist sl = split_by_char(path, '/');
@@ -96,6 +96,21 @@ int tasklist_add_task(tasklist *tl, task t) {
 	return 0;
 }
 
+void tasklist_remove_task(tasklist *tl, long long id) {
+	//prevent crashes
+	if (tl == NULL) return;
+
+	//set index to index of task with said id in array
+	tasklist new_tl = new_tasklist();
+	for (int i = 0; i < tl->ntasks; ++i) {
+		if (tl->tasks[i].id != id) {
+			tasklist_add_task(&new_tl, tl->tasks[i]);
+		}
+	}
+
+	*tl = new_tl;
+}
+
 void tasklist_free_elements(tasklist *tl) {
 	for (int i = 0; i < tl->ntasks; ++i) {
 		task_free_elements(tl->tasks[i]);
@@ -110,9 +125,10 @@ void tasklist_free_elements(tasklist *tl) {
 
 /*TASK FUNCTIONS*/
 
-task new_task(char *name, char *details, long long id) {
+task new_task(tasklist *parent, char *name, char *details, long long id) {
 	task tsk;
 
+	tsk.parent = parent;
 	tsk.name = strdup(name);
 	tsk.details = strdup(details);
 	tsk.id = id;
@@ -158,12 +174,12 @@ int print_task(task tsk) {
 }
 
 /*TASKTREE FUNCTIONS*/
-static int callback_load_child_tasks_from_db(void *in, int length, char **values, char **columns) {
+static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **values, char **columns) {
 	char *name = NULL;
 	char *details = NULL;
 	long long id = -1;
 
-	for (int i = 0; i < length; ++i) {
+	for (int i = 0; i < ncolumns; ++i) {
 		char *val = values[i];
 		char *column = columns[i];
 
@@ -182,7 +198,7 @@ static int callback_load_child_tasks_from_db(void *in, int length, char **values
 		return 1;
 	
 	tasklist *tl = (tasklist*)in;
-	task tsk = new_task(name, details, id);
+	task tsk = new_task(tl, name, details, id);
 	tasklist_add_task(tl, tsk);
 	return 0;
 }
@@ -251,6 +267,48 @@ void tasktree_unload(tasktree *tree) {
 task *tasktree_get_task(tasktree tree, char *path) {
 	return tasklist_get_task_by_path(tree.tl, path);
 }
+
+//TODO: make this neater
+void tasktree_remove_task_from_db(tasktree *tree, long long id);
+static int callback_remove_task_from_db(void *tree, int ncolumns, char **values, char **columns) {
+	long long id = 0;
+
+	for (int i = 0; i < ncolumns; ++i) {
+		if (!strcmp(columns[i], "id")) {
+			id = atoi(values[i]);
+			break;
+		}
+	}
+
+	tasktree_remove_task_from_db((tasktree*)tree, id);
+	return 0;
+}
+
+void tasktree_remove_task_from_db(tasktree *tree, long long id) {
+	sqlite3_exec_by_format(
+		tree->db,
+		callback_remove_task_from_db,
+		tree,
+		"DELETE FROM tasks WHERE id=%lld;",
+		id
+	);
+}
+
+void tasktree_remove_task(tasktree *tree, task *tsk) {
+	//prevents crashes
+	if (tsk == NULL) return;
+
+	//delete task from database
+	tasktree_remove_task_from_db(tree, tsk->id);
+
+	//remove task from memory
+	task_free(tsk);
+}
+
+void tasktree_remove_task_by_path(tasktree *tree, char *path) {
+	tasktree_remove_task(tree, tasklist_get_task_by_path(tree->tl, path));
+}
+
 /*
  * adds to a number after the name until the name is unique.
  * this prevents duplicate names.
@@ -282,7 +340,6 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 	} while (tasklist_get_task_by_name(tl, result) != NULL);
 
 	free(numberless);
-	free(strnum);
 
 	return result;
 }
@@ -295,10 +352,7 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	char *taskname = tasklist_get_next_available_name(*parentlist, tsk.name);      //name of task
 
 	//create new task in memory
-	if (parentlist == NULL) {
-
-	}
-	tasklist_add_task(parentlist, new_task(taskname, tsk.details, tsk.id));
+	tasklist_add_task(parentlist, new_task(parentlist, taskname, tsk.details, tsk.id));
 
 	//bypass database entry if database not found or task is already inserted
 	if (tree->db == NULL || tsk.id > 0)
