@@ -9,7 +9,7 @@
 
 /*INTERNAL FUNCTIONS*/
 
-int callback_set_true(void *setme, int ncolumns, char **vals, char **columns) {
+static int callback_set_true(void *setme, int ncolumns, char **vals, char **columns) {
 	//mark unused variables
 	UNUSED(ncolumns);
 	UNUSED(vals);
@@ -21,7 +21,7 @@ int callback_set_true(void *setme, int ncolumns, char **vals, char **columns) {
 	return 0;
 }
 
-char *malloc_vsprintf(const char* restrict format, va_list args) {
+static char *malloc_vsprintf(const char* restrict format, va_list args) {
 	va_list args2;
 
 	va_copy(args2, args);
@@ -38,6 +38,17 @@ char *malloc_vsprintf(const char* restrict format, va_list args) {
 }
 
 /*GENERAL FUNCTIONS*/
+
+bool string_is_empty(char *str) {
+	if (str == NULL) {
+		return true;
+	}
+	if (!strcmp(str, "")) {
+		return true;
+	}
+	return false;
+}
+
 bool is_pure_num(const char *str) {
 	for (int i = 0; str[i] != '\0'; ++i) {
 		printf("%d", i);
@@ -99,7 +110,11 @@ bool sqlite3_has_table(sqlite3 *database, char *table) {
 		"SELECT name FROM sqlite_master WHERE type='table' AND name='%s';",
 		table
 	);
-	return has_table;
+
+	bool result = *has_table;
+	free(has_table);
+	
+	return result;
 }
 
 int append_string(char *s, char c) {

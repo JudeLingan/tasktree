@@ -10,6 +10,7 @@ typedef struct stringlist {
 	int length;
 } stringlist;
 
+bool string_is_empty(char *str);
 char *malloc_sprintf(const char *format, ...);
 bool is_pure_num(const char *str);
 void handle_error(char *err);

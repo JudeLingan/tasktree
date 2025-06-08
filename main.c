@@ -4,10 +4,8 @@
 #include <string.h>
 #include "tasktree.h"
 
-tasktree tree;
-
 int main() {
-	tasktree_load(&tree, "/home/jude/.local/share/tasktree/tasks.db");
+	tasktree_load("/home/jude/.local/share/tasktree/tasks.db");
 
 	while(true) {
 		//print text input
@@ -25,26 +23,31 @@ int main() {
 			printf("Enter any details: ");
 			char *tasktext = get_input();
 
-			task tsk = new_task(&tree.tl, taskname, tasktext, -1);
 			char *path = NULL;
+			tasklist *parent = NULL;
 
 			if (input.length == 2) {
 				printf("%s\n", input.items[1]);
 				path = input.items[1];
 			}
 
-			tasktree_add_task(&tree, tsk, path);
+			task tsk = new_task(parent, taskname, tasktext, -1);
+
+			tasktree_add_task(tsk, path);
+
+			task_free_elements(tsk);
+			free(taskname);
+			free(tasktext);
 		}
 		else if (!strcmp(input.items[0], "list")) {
-			for(int i = 0; i < tree.tl.ntasks; ++i) {
-				print_task(tree.tl.tasks[i]); }
+			tasktree_print();
 		}
 		else if (!strcmp(input.items[0], "get")) {
 			if (input.length < 2) {
 				printf("ERROR: 'get' command requires a task path\n");
 			}
 			else {
-				task *tsk = tasktree_get_task(tree, input.items[1]);
+				task *tsk = tasktree_get_task(input.items[1]);
 				if (tsk == NULL) {
 					printf("task %s not found\n", input.items[1]);
 				}
@@ -58,14 +61,14 @@ int main() {
 				printf("ERROR: 'get' command requires a task path\n");
 			}
 			else {
-				tasktree_remove_task_by_path(&tree, input.items[1]);
+				tasktree_remove_task_by_path(input.items[1]);
 			}
 		}
 		else if (!strcmp(input.items[0], "done")) {
 
 			stringlist_free_elements(input);
 
-			tasktree_unload(&tree);
+			tasktree_unload();
 
 			break;
 		}

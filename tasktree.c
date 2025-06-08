@@ -7,6 +7,10 @@
 #include "tasktree.h"
 #include "util.h"
 
+tasklist new_tasklist();
+
+tasklist tl = {.tasks = NULL, .ntasks = 0};
+sqlite3 *db = NULL;
 
 /*TASKLIST FUNCTIONS*/
 
@@ -131,7 +135,7 @@ void tasklist_free_elements(tasklist *tl) {
 task new_task(tasklist *parent, char *name, char *details, long long id) {
 	task tsk;
 
-	tsk.parent = parent;
+	tsk.parent = parent == NULL ? parent : &tl;
 	tsk.name = strdup(name);
 	tsk.details = strdup(details);
 	tsk.id = id;
@@ -202,39 +206,40 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 	
 	tasklist *tl = (tasklist*)in;
 	task tsk = new_task(tl, name, details, id);
+
 	tasklist_add_task(tl, tsk);
+
+	free(name);
+	free(details);
 	return 0;
 }
 
-void load_child_tasks_from_db(tasktree *tree, task *parent) {
+void load_child_tasks_from_db(task *parent) {
 	printf("loading tasks\n");
 	int parentid = 0;
 	if (parent != NULL) {
 		parentid = parent->id;
 	}
 
-	tasklist *tl = parent == NULL ? &tree->tl : &parent->tl;
+	tasklist *parenttl = parent == NULL ? &tl : &parent->tl;
 	sqlite3_exec_by_format(
-		tree->db, callback_load_child_tasks_from_db,
-		tl,
+		db, callback_load_child_tasks_from_db,
+		parenttl,
 		"SELECT * FROM tasks WHERE parent = %d",
 		parentid
 	);
 
-	for(int i = 0; i < tl->ntasks; ++i) {
-		load_child_tasks_from_db(tree, &tl->tasks[i]);
+	for(int i = 0; i < parenttl->ntasks; ++i) {
+		load_child_tasks_from_db(&parenttl->tasks[i]);
 	}
 }
 
-void load_tasks_from_db(tasktree *tree) {
+void load_tasks_from_db() {
 	printf("loading tasks part 1\n");
-	load_child_tasks_from_db(tree, NULL);
+	load_child_tasks_from_db(NULL);
 }
 
-void tasktree_load(tasktree *tree, char *path) {
-	sqlite3 *db = NULL;
-	tasklist tl = new_tasklist();
-
+void tasktree_load(char *path) {
 	int rc = 1;
 
 	if (path != NULL) {
@@ -247,33 +252,37 @@ void tasktree_load(tasktree *tree, char *path) {
 	}
 	
 	if (!sqlite3_has_table(db, "tasks")) {
+		printf("%s\n", "table tasks not found");
 		sqlite3_exec(
 			db,
-			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, name TEXT NOT NULL, parent INTEGER, details TEXT);",
+			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, name TEXT, parent INTEGER, details TEXT);",
 			NULL,
 			NULL,
 			NULL
 		);
 	}
 
-	tree->db = db;
-	tree->tl = tl;
-
-	load_tasks_from_db(tree);
+	load_tasks_from_db();
 }
 
-void tasktree_unload(tasktree *tree) {
-	sqlite3_close(tree->db);
-	tasklist_free_elements(&tree->tl);
+void tasktree_unload() {
+	sqlite3_close(db);
+	tasklist_free_elements(&tl);
 }
 
-task *tasktree_get_task(tasktree tree, char *path) {
-	return tasklist_get_task_by_path(tree.tl, path);
+void tasktree_print() {
+	for(int i = 0; i < tl.ntasks; ++i) {
+		print_task(tl.tasks[i]); }
+}
+
+task *tasktree_get_task(char *path) {
+	return tasklist_get_task_by_path(tl, path);
 }
 
 //TODO: make this neater
-void tasktree_remove_task_from_db(tasktree *tree, long long id);
-static int callback_remove_task_from_db(void *tree, int ncolumns, char **values, char **columns) {
+static void tasktree_remove_task_from_db(long long id);
+
+static int callback_remove_task_from_db(void *val, int ncolumns, char **values, char **columns) {
 	long long id = 0;
 
 	for (int i = 0; i < ncolumns; ++i) {
@@ -283,33 +292,33 @@ static int callback_remove_task_from_db(void *tree, int ncolumns, char **values,
 		}
 	}
 
-	tasktree_remove_task_from_db((tasktree*)tree, id);
+	tasktree_remove_task_from_db(id);
 	return 0;
 }
 
-void tasktree_remove_task_from_db(tasktree *tree, long long id) {
+static void tasktree_remove_task_from_db(long long id) {
 	sqlite3_exec_by_format(
-		tree->db,
+		db,
 		callback_remove_task_from_db,
-		tree,
+		NULL,
 		"DELETE FROM tasks WHERE id=%lld;",
 		id
 	);
 }
 
-void tasktree_remove_task(tasktree *tree, task *tsk) {
+void tasktree_remove_task(task *tsk) {
 	//prevents crashes
 	if (tsk == NULL) return;
 
 	//delete task from database
-	tasktree_remove_task_from_db(tree, tsk->id);
+	tasktree_remove_task_from_db(tsk->id);
 
 	//remove task from memory
 	tasklist_remove_task(tsk->parent, tsk->id);
 }
 
-void tasktree_remove_task_by_path(tasktree *tree, char *path) {
-	tasktree_remove_task(tree, tasklist_get_task_by_path(tree->tl, path));
+void tasktree_remove_task_by_path(char *path) {
+	tasktree_remove_task(tasklist_get_task_by_path(tl, path));
 }
 
 /*
@@ -352,18 +361,18 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 	return result;
 }
 
-void tasktree_add_task(tasktree *tree, task tsk, char *path) {
+void tasktree_add_task(const task tsk, char *path) {
 	printf("adding task\n");
 
-	task *parent = tasklist_get_task_by_path(tree->tl, path);                      //parent task
-	tasklist *parentlist = path == NULL ? &tree->tl : &parent->tl;                 //parent tasklist
+	task *parent = tasklist_get_task_by_path(tl, path);                            //parent task
+	tasklist *parentlist = path == NULL ? &tl : &parent->tl;                       //parent tasklist
 	char *taskname = tasklist_get_next_available_name(*parentlist, tsk.name);      //name of task
 
 	//create new task in memory
 	tasklist_add_task(parentlist, new_task(parentlist, taskname, tsk.details, tsk.id));
 
 	//bypass database entry if database not found or task is already inserted
-	if (tree->db == NULL || tsk.id > 0)
+	if (db == NULL || tsk.id > 0)
 		return;
 
 	//enter new task into database
@@ -374,12 +383,12 @@ void tasktree_add_task(tasktree *tree, task tsk, char *path) {
 	}
 	//execute sqlite code
 	if (tsk.details != NULL) {
-		char sql_format[] = "INSERT INTO tasks (name, details, parent) VALUES ('%s', '%s', %lld);";
-		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, taskname, tsk.details, parentid);
+		char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (%lld, '%s', '%s');";
+		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname, tsk.details);
 	}
 	else {
-		char sql_format[] = "INSERT INTO tasks (name, parent) VALUES ('%s', %lld);";
-		sqlite3_exec_by_format(tree->db, NULL, NULL, sql_format, taskname, tsk.details, parentid);
+		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES ('%s', %lld);";
+		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname);
 	}
 }
 
