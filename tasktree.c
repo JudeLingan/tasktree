@@ -224,7 +224,6 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 }
 
 void load_child_tasks_from_db(task *parent) {
-	printf("loading tasks\n");
 	int parentid = 0;
 	if (parent != NULL) {
 		parentid = parent->id;
@@ -232,7 +231,8 @@ void load_child_tasks_from_db(task *parent) {
 
 	tasklist *parenttl = parent == NULL ? &tl : &parent->tl;
 	sqlite3_exec_by_format(
-		db, callback_load_child_tasks_from_db,
+		db,
+		callback_load_child_tasks_from_db,
 		parenttl,
 		"SELECT * FROM tasks WHERE parent = %d",
 		parentid
@@ -248,7 +248,7 @@ void load_tasks_from_db() {
 	load_child_tasks_from_db(NULL);
 }
 
-void tasktree_load(char *path) {
+void tasktree_load(const char *path) {
 	int rc = 1;
 
 	if (path != NULL) {
@@ -257,14 +257,14 @@ void tasktree_load(char *path) {
 	}
 
 	if (rc) {
-		printf("SQL CONNECTION FAILED\n");
+		handle_error("SQL CONNECTION FAILED\n");
 	}
 	
 	if (!sqlite3_has_table(db, "tasks")) {
-		printf("%s\n", "table tasks not found");
+		handle_error("table tasks not found\n");
 		sqlite3_exec(
 			db,
-			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, name TEXT, parent INTEGER, details TEXT);",
+			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, parent INTEGER, name TEXT, details TEXT);",
 			NULL,
 			NULL,
 			NULL
@@ -280,19 +280,12 @@ void tasktree_unload() {
 }
 
 void tasktree_print() {
-	static int indent = -1;
-	indent += 1;
-	
-
-
 	for(int i = 0; i < tl.ntasks; ++i) {
 		print_task(tl.tasks[i]); 
 	}
-
-	indent -= 1;
 }
 
-task *tasktree_get_task(char *path) {
+task *tasktree_get_task(const char *path) {
 	return tasklist_get_task_by_path(tl, path);
 }
 
@@ -300,6 +293,8 @@ task *tasktree_get_task(char *path) {
 static void tasktree_remove_task_from_db(long long id);
 
 static int callback_remove_task_from_db(void *val, int ncolumns, char **values, char **columns) {
+	UNUSED(val);
+
 	long long id = 0;
 
 	for (int i = 0; i < ncolumns; ++i) {
@@ -334,7 +329,7 @@ void tasktree_remove_task(task *tsk) {
 	tasklist_remove_task(tsk->parent, tsk->id);
 }
 
-void tasktree_remove_task_by_path(char *path) {
+void tasktree_remove_task_by_path(const char *path) {
 	tasktree_remove_task(tasklist_get_task_by_path(tl, path));
 }
 
@@ -378,7 +373,7 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 	return result;
 }
 
-void tasktree_add_task(const task tsk, char *path) {
+void tasktree_add_task(const task tsk, const char *path) {
 	printf("adding task\n");
 
 	task *parent = tasklist_get_task_by_path(tl, path);                            //parent task

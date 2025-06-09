@@ -1,11 +1,32 @@
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include "tasktree.h"
 
+#define LOCALDBPATH "/.local/share/tasktree.db"
+
+char *get_db_path() {
+	struct passwd *pw = getpwuid(getuid());
+
+	char *homedir = pw->pw_dir;
+	char *dbpath = (char*)calloc(strlen(LOCALDBPATH) + strlen(homedir) + 1, sizeof(char));
+	strcpy(dbpath, homedir);
+	strcat(dbpath, LOCALDBPATH);
+	return dbpath;
+}
+
 int main() {
-	tasktree_load("/home/jude/.local/share/tasktree/tasks.db");
+	char *dbpath = get_db_path();
+
+	printf("%s\n", dbpath);
+
+	tasktree_load(dbpath);
+
+	free(dbpath);
 
 	while(true) {
 		//print text input
@@ -44,7 +65,7 @@ int main() {
 		}
 		else if (!strcmp(input.items[0], "get")) {
 			if (input.length < 2) {
-				printf("ERROR: 'get' command requires a task path\n");
+				printf("'get' command requires a task path\n");
 			}
 			else {
 				task *tsk = tasktree_get_task(input.items[1]);
@@ -58,7 +79,7 @@ int main() {
 		}
 		else if (!strcmp(input.items[0], "remove")) {
 			if (input.length < 2) {
-				printf("ERROR: 'get' command requires a task path\n");
+				printf("'remove' command requires a task path\n");
 			}
 			else {
 				tasktree_remove_task_by_path(input.items[1]);

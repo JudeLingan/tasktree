@@ -1,4 +1,5 @@
 #include <sqlite3.h>
+#include <stdbool.h>
 #include "util.h"
 
 #ifndef TASKTREE_H
@@ -27,11 +28,11 @@ int task_free(task *tsk);
 int task_add_task(task* branch, task tsk);
 int print_task(task tsk);
 char *get_input();
-void tasktree_load(char *path);
+void tasktree_load(const char *path);
 void tasktree_unload();
 void tasktree_print();
-void tasktree_add_task(task tsk, char* path);
-task *tasktree_get_task(char *path);
-void tasktree_remove_task_by_path(char *path);
+void tasktree_add_task(const task tsk, const char* path);
+task *tasktree_get_task(const char *path);
+void tasktree_remove_task_by_path(const char *path);
 
 #endif
