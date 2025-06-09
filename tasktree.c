@@ -91,8 +91,9 @@ int tasklist_add_task(tasklist *tl, task t) {
 		return 1;
 	}
 
+	t.parent = tl;
+
 	tl->tasks[tl->ntasks - 1] = t;
-	tl->tasks[tl->ntasks - 1].parent = tl;
 
 	return 0;
 }
@@ -129,10 +130,9 @@ void tasklist_free_elements(tasklist *tl) {
 
 /*TASK FUNCTIONS*/
 
-task new_task(tasklist *parent, char *name, char *details, long long id) {
+task new_task(char *name, char *details, long long id) {
 	task tsk;
 
-	tsk.parent = parent == NULL ? parent : &tl;
 	tsk.name = strdup(name);
 	tsk.details = strdup(details);
 	tsk.id = id;
@@ -173,6 +173,7 @@ int print_task(task tsk) {
 	++indent;
 
 	for (int i = 0; i < indent; ++i) printf("\t");
+
 	printf("\x1b[34m%s\x1b[0m\n", tsk.name);
 
 	if (!string_is_empty(tsk.details)) {
@@ -213,10 +214,10 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 	if (name == NULL)
 		return 1;
 	
-	tasklist *tl = (tasklist*)in;
-	task tsk = new_task(tl, name, details, id);
+	tasklist *parentlist = (tasklist*)in;
+	task tsk = new_task(name, details, id);
 
-	tasklist_add_task(tl, tsk);
+	tasklist_add_task(parentlist, tsk);
 
 	free(name);
 	free(details);
@@ -230,6 +231,7 @@ void load_child_tasks_from_db(task *parent) {
 	}
 
 	tasklist *parenttl = parent == NULL ? &tl : &parent->tl;
+
 	sqlite3_exec_by_format(
 		db,
 		callback_load_child_tasks_from_db,
@@ -381,7 +383,7 @@ void tasktree_add_task(const task tsk, const char *path) {
 	char *taskname = tasklist_get_next_available_name(*parentlist, tsk.name);      //name of task
 
 	//create new task in memory
-	tasklist_add_task(parentlist, new_task(parentlist, taskname, tsk.details, tsk.id));
+	tasklist_add_task(parentlist, new_task(taskname, tsk.details, tsk.id));
 
 	//bypass database entry if database not found or task is already inserted
 	if (db == NULL || tsk.id > 0)

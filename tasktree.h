@@ -22,7 +22,7 @@ struct task {
 
 //char *malloc_sprintf(const char* format, ...);
 //int append_string(char *s, char c);
-task new_task(tasklist *parent, char *name, char *data, long long id);
+task new_task(char *name, char *data, long long id);
 void task_free_elements(task tsk);
 int task_free(task *tsk);
 int task_add_task(task* branch, task tsk);

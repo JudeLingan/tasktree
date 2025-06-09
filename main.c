@@ -45,14 +45,13 @@ int main() {
 			char *tasktext = get_input();
 
 			char *path = NULL;
-			tasklist *parent = NULL;
 
 			if (input.length == 2) {
 				printf("%s\n", input.items[1]);
 				path = input.items[1];
 			}
 
-			task tsk = new_task(parent, taskname, tasktext, -1);
+			task tsk = new_task(taskname, tasktext, -1);
 
 			tasktree_add_task(tsk, path);
 
