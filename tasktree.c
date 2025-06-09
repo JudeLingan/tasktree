@@ -23,10 +23,8 @@ tasklist new_tasklist() {
 }
 
 int tasklist_increment_tasks(tasklist* tl) {
-	printf("ntasks: %d\n", tl->ntasks);
 	task *new_tasks;
 	if (tl->tasks != NULL) {
-		printf("%p\n", tl->tasks);
 		new_tasks = (task*)realloc(tl->tasks, (tl->ntasks + 1)*sizeof(task));
 	}
 	else {
@@ -34,7 +32,7 @@ int tasklist_increment_tasks(tasklist* tl) {
 	}
 
 	if (new_tasks == NULL) {
-		printf("ERROR: task reallocation failed\n");
+		handle_error("ERROR: task reallocation failed\n");
 		return 1;
 	}
 
@@ -94,8 +92,7 @@ int tasklist_add_task(tasklist *tl, task t) {
 	}
 
 	tl->tasks[tl->ntasks - 1] = t;
-	printf("task %d is %s\n", tl->ntasks, tl->tasks[tl->ntasks - 1].name);
-	printf("new ntasks is %d\n", tl->ntasks);
+	tl->tasks[tl->ntasks - 1].parent = tl;
 
 	return 0;
 }
@@ -171,11 +168,23 @@ int task_add_task(task *root, task branch) {
 }
 
 int print_task(task tsk) {
+	static int indent = -1;
+	
+	++indent;
+
+	for (int i = 0; i < indent; ++i) printf("\t");
+	printf("\x1b[34m%s\x1b[0m\n", tsk.name);
+
+	if (!string_is_empty(tsk.details)) {
+		for (int i = 0; i < indent; ++i) printf("\t");
+		printf("%s\n", tsk.details);
+	}
+
 	for (int i = 0; i < tsk.tl.ntasks; ++i) {
 		print_task(tsk.tl.tasks[i]);
 	}
 
-	printf("task: %s\n\tdetails: %s\n", tsk.name, tsk.details);
+	--indent;
 
 	return 0;
 }
@@ -271,8 +280,16 @@ void tasktree_unload() {
 }
 
 void tasktree_print() {
+	static int indent = -1;
+	indent += 1;
+	
+
+
 	for(int i = 0; i < tl.ntasks; ++i) {
-		print_task(tl.tasks[i]); }
+		print_task(tl.tasks[i]); 
+	}
+
+	indent -= 1;
 }
 
 task *tasktree_get_task(char *path) {
