@@ -1,4 +1,4 @@
-flags = $(shell pkg-config --cflags gtk4) -Wall -Wextra -lsqlite3 -g $(shell pkg-config --libs gtk4)
+flags = -Wall -Wextra -lsqlite3 -g
 modules = util.h util.c tasktree.h tasktree.c
 
 all: 
