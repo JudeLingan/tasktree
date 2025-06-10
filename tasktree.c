@@ -108,7 +108,10 @@ int tasklist_add_task(tasklist *tl, task t) {
 
 void tasklist_remove_task(tasklist *tl, long long id) {
 	//prevent crashes
-	if (tl == NULL) return;
+	if (tl == NULL) {
+		handle_error("TASK HAS NULL PARENT");
+		return;
+	}
 
 	//set index to index of task with said id in array
 	tasklist new_tl = new_tasklist();
@@ -118,10 +121,11 @@ void tasklist_remove_task(tasklist *tl, long long id) {
 		}
 		else {
 			tasklist_add_task(&new_tl, tl->tasks[i]);
+			new_tl.tasks[i].parent = tl;
 		}
 	}
 
-	//free old tasklist
+	//replace tasklist
 	free(tl->tasks);
 	*tl = new_tl;
 }
@@ -329,7 +333,10 @@ static void tasktree_remove_task_from_db(long long id) {
 
 void tasktree_remove_task(task *tsk) {
 	//prevents crashes
-	if (tsk == NULL) return;
+	if (tsk == NULL) {
+		handle_error("CANNOT REMOVE NULL TASK\n");
+		return;
+	}
 
 	//delete task from database
 	tasktree_remove_task_from_db(tsk->id);
@@ -391,8 +398,8 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 void tasktree_add_task(task *tsk, const char *path) {
 	printf("adding task\n");
 
-	task *parent = tasklist_get_task_by_path(tl, path);                            //parent task
-	tasklist *parentlist = path == NULL ? &tl : &parent->tl;                       //parent tasklist
+	task *parent = tasklist_get_task_by_path(tl, path);                             //parent task
+	tasklist *parentlist = path == NULL ? &tl : &parent->tl;                        //parent tasklist
 	char *taskname = tasklist_get_next_available_name(*parentlist, tsk->name);      //name of task
 
 	//create new task in memory

@@ -31,7 +31,7 @@ static char *malloc_vsprintf(const char* restrict format, va_list args) {
 
 	vsnprintf(result, len, format, args);
 
-	return strdup(result);
+	return result;
 }
 
 /*GENERAL FUNCTIONS*/
