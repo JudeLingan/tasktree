@@ -14,6 +14,7 @@ typedef struct tasklist {
 
 struct task {
 	int id;
+	bool completed;
 	char *name;
 	char *details;
 	tasklist tl;
@@ -31,7 +32,7 @@ char *get_input();
 void tasktree_load(const char *path);
 void tasktree_unload();
 void tasktree_print();
-void tasktree_add_task(const task tsk, const char* path);
+void tasktree_add_task(task *tsk, const char* path);
 task *tasktree_get_task(const char *path);
 void tasktree_remove_task_by_path(const char *path);
 

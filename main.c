@@ -53,7 +53,7 @@ int main() {
 
 			task tsk = new_task(taskname, tasktext, -1);
 
-			tasktree_add_task(tsk, path);
+			tasktree_add_task(&tsk, path);
 
 			task_free_elements(tsk);
 			free(taskname);

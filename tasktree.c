@@ -121,6 +121,8 @@ void tasklist_remove_task(tasklist *tl, long long id) {
 		}
 	}
 
+	//free old tasklist
+	free(tl->tasks);
 	*tl = new_tl;
 }
 
@@ -139,14 +141,13 @@ void tasklist_free_elements(tasklist *tl) {
 /*TASK FUNCTIONS*/
 
 task new_task(char *name, char *details, long long id) {
-	task tsk;
-
-	tsk.name = strdup(name);
-	tsk.details = strdup(details);
-	tsk.id = id;
-
-	tsk.tl.tasks = NULL;
-	tsk.tl.ntasks = 0;
+	task tsk = {
+		.id = id,
+		.name = strdup(name),
+		.details = strdup(details),
+		.completed = false,
+		.tl = new_tasklist()
+	};
 
 	return tsk;
 }
@@ -219,9 +220,6 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 		}
 	}
 
-	if (name == NULL)
-		return 1;
-	
 	tasklist *parentlist = (tasklist*)in;
 	task tsk = new_task(name, details, id);
 
@@ -229,6 +227,7 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 
 	free(name);
 	free(details);
+	id = -1;
 	return 0;
 }
 
@@ -389,18 +388,18 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 	return result;
 }
 
-void tasktree_add_task(const task tsk, const char *path) {
+void tasktree_add_task(task *tsk, const char *path) {
 	printf("adding task\n");
 
 	task *parent = tasklist_get_task_by_path(tl, path);                            //parent task
 	tasklist *parentlist = path == NULL ? &tl : &parent->tl;                       //parent tasklist
-	char *taskname = tasklist_get_next_available_name(*parentlist, tsk.name);      //name of task
+	char *taskname = tasklist_get_next_available_name(*parentlist, tsk->name);      //name of task
 
 	//create new task in memory
-	tasklist_add_task(parentlist, new_task(taskname, tsk.details, tsk.id));
+	tasklist_add_task(parentlist, new_task(taskname, tsk->details, tsk->id));
 
 	//bypass database entry if database not found or task is already inserted
-	if (db == NULL || tsk.id > 0)
+	if (db == NULL || tsk->id > 0)
 		return;
 
 	//enter new task into database
@@ -410,14 +409,17 @@ void tasktree_add_task(const task tsk, const char *path) {
 		parentid = parent->id;
 	}
 	//execute sqlite code
-	if (tsk.details != NULL) {
+	if (tsk->details != NULL) {
 		char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (%lld, '%s', '%s');";
-		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname, tsk.details);
+		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname, tsk->details);
 	}
 	else {
 		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES ('%s', %lld);";
 		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname);
 	}
+
+	//set id of task to the one given by the database
+	parentlist->tasks[parentlist->ntasks - 1].id = sqlite3_last_insert_rowid(db);
 }
 
 char *get_input() {
