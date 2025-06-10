@@ -399,6 +399,7 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 void tasktree_add_task(task *tsk, const char *path) {
 	printf("adding task\n");
 
+	//variable declarations
 	task *parent = tasklist_get_task_by_path(tl, path);                             //parent task
 	tasklist *parentlist = path == NULL ? &tl : &parent->tl;                        //parent tasklist
 	char *taskname = tasklist_get_next_available_name(*parentlist, tsk->name);      //name of task
@@ -427,6 +428,9 @@ void tasktree_add_task(task *tsk, const char *path) {
 		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES ('%s', %lld);";
 		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname);
 	}
+
+	//free local variables
+	free(taskname);
 
 	//set id of task to the one given by the database
 	parentlist->tasks[parentlist->ntasks - 1].id = sqlite3_last_insert_rowid(db);
