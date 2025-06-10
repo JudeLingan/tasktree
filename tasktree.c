@@ -45,35 +45,46 @@ int tasklist_increment_tasks(tasklist* tl) {
 /*
  * Get first task with name in tasklist.
  * breaks with multiple tasks that have the same name.
+ * will most likely be replaced with ids once a GUI is made.
 */
 task *tasklist_get_task_by_name(tasklist tl, char *name) {
+	//prevents NULL errors
+	if (name == NULL) {
+		return NULL;
+	}
+
+	//get task
 	for (int i = 0; i < tl.ntasks; ++i) {
 	  if (!strcmp(tl.tasks[i].name, name)) {
 			return &tl.tasks[i];
 	  }
 	}
 
+	//return NULL if no task is found with given name
 	return NULL;
 }
 
 task *tasklist_get_task_by_path(tasklist tl, const char *path) {
-	if (path == NULL)
+	//prevent errors from null
+	if (path == NULL) {
 		return NULL;
-	stringlist sl = split_by_char(path, '/');
+	}
+
+	stringlist pathlist = split_by_char(path, '/');
 
 	//remove last element of sl if it is empty, allowing for trailing slash
-	if (!strcmp(sl.items[sl.length - 1], "")) {
-		free(sl.items);
-		--sl.length;
+	if (!strcmp(pathlist.items[pathlist.length - 1], "")) {
+		free(pathlist.items);
+		--pathlist.length;
 	}
 
 	task *tsk = NULL;
 
-	for (int i = 0; i < sl.length; ++i) {
-		tsk = tasklist_get_task_by_name(tl, sl.items[i]);
+	for (int i = 0; i < pathlist.length; ++i) {
+		tsk = tasklist_get_task_by_name(tl, pathlist.items[i]);
 
 		if (tsk == NULL) {
-			stringlist_free_elements(sl);
+			stringlist_free_elements(pathlist);
 			return NULL;
 		}
 		else {
@@ -81,8 +92,7 @@ task *tasklist_get_task_by_path(tasklist tl, const char *path) {
 		}
 	}
 
-	stringlist_free_elements(sl);
-	
+	stringlist_free_elements(pathlist);
 	return tsk;
 }
 
@@ -92,9 +102,7 @@ int tasklist_add_task(tasklist *tl, task t) {
 	}
 
 	t.parent = tl;
-
 	tl->tasks[tl->ntasks - 1] = t;
-
 	return 0;
 }
 
@@ -174,7 +182,7 @@ int print_task(task tsk) {
 
 	for (int i = 0; i < indent; ++i) printf("\t");
 
-	printf("\x1b[34m%s\x1b[0m\n", tsk.name);
+	printf(CYAN("%s\n"), tsk.name);
 
 	if (!string_is_empty(tsk.details)) {
 		for (int i = 0; i < indent; ++i) printf("\t");
@@ -341,6 +349,11 @@ void tasktree_remove_task_by_path(const char *path) {
  * returns a character pointer with a unique name.
  */
 char *tasklist_get_next_available_name(tasklist tl, char* name) {
+	//prevents NULL errors
+	if (name == NULL) {
+		return NULL;
+	}
+
 	char *numberless = NULL;
 	char *strnum = &name[0];
 	int num = 0;
@@ -359,6 +372,7 @@ char *tasklist_get_next_available_name(tasklist tl, char* name) {
 	//increases number until name is available, then assigns it to "result"
 	num = atoi(strnum);
 	char *result = NULL;
+
 	do {
 		free(result);
 		if (num == 0) {
@@ -420,9 +434,9 @@ char *get_input() {
 	return str;
 }
 
+//gets a line of input and returns it as a stringlist
 stringlist stringlist_input() {
 	char *raw = get_input();
-
 	stringlist output = split_by_char(raw, ' ');
 	free(raw);
 	return output;

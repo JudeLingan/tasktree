@@ -13,11 +13,11 @@ void run_test(char* (*test)(void*), void* val) {
 	printf("Test #%d: ", total_tests);
 	char *result = test(val);
 	if (result == NULL) {
-		printf("\x1B[32mPASSED\x1b[0m\n");
+		printf(BLUE("PASSED\n"));
 		++passed_tests;
 	}
 	else {
-		printf("\x1B[31mFAILED: %s\x1b[0m\n", result);
+		printf(RED("FAILED") "%s\n", result);
 		free(result);
 	}
 }
