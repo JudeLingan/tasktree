@@ -98,6 +98,7 @@ task *tasklist_get_task_by_path(tasklist tl, const char *path) {
 
 int tasklist_add_task(tasklist *tl, task t) {
 	if (tasklist_increment_tasks(tl)) {
+		handle_error("tasklist_increment_tasks failed\n");
 		return 1;
 	}
 
@@ -121,7 +122,7 @@ void tasklist_remove_task(tasklist *tl, long long id) {
 		}
 		else {
 			tasklist_add_task(&new_tl, tl->tasks[i]);
-			new_tl.tasks[i].parent = tl;
+			new_tl.tasks[new_tl.ntasks - 1].parent = tl;
 		}
 	}
 
@@ -406,8 +407,10 @@ void tasktree_add_task(task *tsk, const char *path) {
 	tasklist_add_task(parentlist, new_task(taskname, tsk->details, tsk->id));
 
 	//bypass database entry if database not found or task is already inserted
-	if (db == NULL || tsk->id > 0)
+	if (db == NULL || tsk->id > 0) {
+		printf("task already in db\n");
 		return;
+	}
 
 	//enter new task into database
 	long long parentid = 0;
