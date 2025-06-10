@@ -25,16 +25,13 @@ static char *malloc_vsprintf(const char* restrict format, va_list args) {
 	va_list args2;
 
 	va_copy(args2, args);
-	size_t len = vsnprintf(NULL, 0, format, args) + 1;
-
-	char dest[len];
-
-	printf("len: %lu\nformat: %s\n", len, format);
-
-	vsnprintf(dest, len, format, args2);
+	size_t len = vsnprintf(NULL, 0, format, args2) + 1;
 	va_end(args2);
+	char *result = (char*)malloc(len*sizeof(char));
 
-	return strdup(dest);
+	vsnprintf(result, len, format, args);
+
+	return strdup(result);
 }
 
 /*GENERAL FUNCTIONS*/
