@@ -1,11 +1,15 @@
-#include <unistd.h>
-#include <sys/types.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include "tasktree.h"
+
+#if defined(_WIN32)
+
+#elif defined(__linux__)
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #define LOCALDBPATH "/.local/share/tasktree.db"
 
@@ -18,6 +22,8 @@ char *get_db_path() {
 	strcat(dbpath, LOCALDBPATH);
 	return dbpath;
 }
+
+#endif
 
 int main() {
 	char *dbpath = get_db_path();
@@ -73,6 +79,20 @@ int main() {
 				}
 				else {
 					print_task(*tsk);
+				}
+			}
+		}
+		else if (!strcmp(input.items[0], "complete")) {
+			if (input.length < 2) {
+				printf("'get' command requires a task path\n");
+			}
+			else {
+				task *tsk = tasktree_get_task(input.items[1]);
+				if (tsk == NULL) {
+					printf("task %s not found\n", input.items[1]);
+				}
+				else {
+					task_complete(tsk);
 				}
 			}
 		}

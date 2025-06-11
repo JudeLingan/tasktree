@@ -188,7 +188,7 @@ int print_task(task tsk) {
 
 	for (int i = 0; i < indent; ++i) printf("\t");
 
-	printf(CYAN("%s\n"), tsk.name);
+	printf(tsk.completed ? GREEN("%s\n") : RED("%s\n"), tsk.name);
 
 	if (!string_is_empty(tsk.details)) {
 		for (int i = 0; i < indent; ++i) printf("\t");
@@ -204,17 +204,44 @@ int print_task(task tsk) {
 	return 0;
 }
 
+void task_complete(task *tsk) {
+	if (tsk == NULL) {
+		handle_error("CANNOT COMPLETE NULL TASK\n");
+		return;
+	}
+
+	tsk->completed = true;
+
+	//update database
+	if (db != NULL) {
+		sqlite3_exec_by_format(
+			db,
+			NULL,
+			NULL,
+			"UPDATE tasks SET completed = 1 WHERE id = %lld;",
+			tsk->id
+		);
+	}
+	else {
+		handle_error("CANNOT COMPLETE TASK, NO DATABASE FOUND\n");
+	}
+}
+
 /*TASKTREE FUNCTIONS*/
 static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **values, char **columns) {
 	char *name = NULL;
 	char *details = NULL;
 	long long id = -1;
+	bool completed = false;
 
 	for (int i = 0; i < ncolumns; ++i) {
 		char *val = values[i];
 		char *column = columns[i];
 
-		if (!strcmp(column, "name")) {
+		if (val == NULL) {
+			continue;
+		}
+		else if (!strcmp(column, "name")) {
 			name = strdup(val);
 		}
 		else if (!strcmp(column, "details")) {
@@ -223,10 +250,14 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 		else if (!strcmp(column, "id")) {
 			id = atoi(val);
 		}
+		else if (!strcmp(column, "completed")) {
+			completed = atoi(val);
+		}
 	}
 
 	tasklist *parentlist = (tasklist*)in;
 	task tsk = new_task(name, details, id);
+	tsk.completed = completed;
 
 	tasklist_add_task(parentlist, tsk);
 
@@ -278,7 +309,7 @@ void tasktree_load(const char *path) {
 		handle_error("table tasks not found\n");
 		sqlite3_exec(
 			db,
-			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, parent INTEGER, name TEXT, details TEXT);",
+			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, parent INTEGER, name TEXT, details TEXT, completed INTEGER);",
 			NULL,
 			NULL,
 			NULL
