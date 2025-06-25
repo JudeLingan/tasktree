@@ -159,7 +159,9 @@ stringlist split_by_char(const char *str, char ch) {
 	char buffer[buffer_length];
 	strncpy(buffer, "", buffer_length);
 
-	for (long unsigned int i = 0; i <= strlen(str); ++i) {
+	long unsigned int end = strlen(str);
+
+	for (long unsigned int i = 0; i <= end; ++i) {
 		if (str[i] == ch || str[i] == '\0') {
 			if (stringlist_append(&out, buffer)) break;
 			strncpy(buffer, "", buffer_length);
