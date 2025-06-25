@@ -30,6 +30,7 @@ int task_add_task(task* branch, task tsk);
 void task_complete(task *tsk);
 int print_task(task tsk);
 char *get_input();
+stringlist stringlist_input();
 void tasktree_load(const char *path);
 void tasktree_unload();
 void tasktree_print();

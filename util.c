@@ -141,7 +141,7 @@ bool stringlist_append(stringlist *sl, char *str) {
 /*STRINGLIST FUNCTIONS*/
 stringlist new_stringlist() {
 	stringlist out;
-	out.items = (char**)malloc(sizeof(char**));
+	out.items = NULL;
 	out.length = 0;
 
 	return out;
@@ -152,8 +152,6 @@ stringlist split_by_char(const char *str, char ch) {
 
 	if (str == NULL) {
 		handle_error("ERROR: null string\n");
-		out.items = NULL;
-		out.length = 0;
 		return out;
 	}
 
@@ -180,6 +178,7 @@ stringlist split_by_char(const char *str, char ch) {
 
 void stringlist_free_elements(stringlist sl) {
 	for (int i = 0; i < sl.length; ++i) {
+		printf("%d\n", i);
 		free(sl.items[i]);
 	}
 	free(sl.items);
@@ -191,5 +190,5 @@ void stringlist_free(stringlist *sl) {
 }
 
 void handle_error(char *err) {
-	printf(err);
+	printf("%s\n", err);
 }

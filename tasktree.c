@@ -7,6 +7,28 @@
 #include "tasktree.h"
 #include "util.h"
 
+char *get_input() {
+	size_t buffer_length = 0;
+	char *buffer = NULL;
+	getline(&buffer, &buffer_length, stdin);
+	buffer[strcspn(buffer, "\n")] = '\0';
+	
+	char *str = (char*)malloc(strlen(buffer) + 1);
+	strncpy(str, buffer, strlen(buffer) + 1);
+
+	free(buffer);
+
+	return str;
+}
+
+//gets a line of input and returns it as a stringlist
+stringlist stringlist_input() {
+	char *raw = get_input();
+	stringlist output = split_by_char(raw, ' ');
+	free(raw);
+	return output;
+}
+
 tasklist new_tasklist();
 
 tasklist tl = {.tasks = NULL, .ntasks = 0};
@@ -47,9 +69,9 @@ int tasklist_increment_tasks(tasklist* tl) {
  * breaks with multiple tasks that have the same name.
  * will most likely be replaced with ids once a GUI is made.
 */
-task *tasklist_get_task_by_name(tasklist tl, char *name) {
+task *tasklist_get_task_by_name(tasklist tl, const char *name) {
 	//prevents NULL errors
-	if (name == NULL) {
+	if (name == NULL || tl.tasks == NULL || tl.ntasks <= 0) {
 		return NULL;
 	}
 
@@ -136,8 +158,7 @@ void tasklist_free_elements(tasklist *tl) {
 		task_free_elements(tl->tasks[i]);
 	}
 
-	if (tl->tasks != NULL)
-		free(tl->tasks);
+	free(tl->tasks);
 
 	tl->ntasks = 0;
 	tl->tasks = NULL;
@@ -465,26 +486,4 @@ void tasktree_add_task(task *tsk, const char *path) {
 
 	//set id of task to the one given by the database
 	parentlist->tasks[parentlist->ntasks - 1].id = sqlite3_last_insert_rowid(db);
-}
-
-char *get_input() {
-	size_t buffer_length = 0;
-	char *buffer = NULL;
-	getline(&buffer, &buffer_length, stdin);
-	buffer[strcspn(buffer, "\n")] = '\0';
-	
-	char *str = (char*)malloc(strlen(buffer) + 1);
-	strncpy(str, buffer, strlen(buffer) + 1);
-
-	free(buffer);
-
-	return str;
-}
-
-//gets a line of input and returns it as a stringlist
-stringlist stringlist_input() {
-	char *raw = get_input();
-	stringlist output = split_by_char(raw, ' ');
-	free(raw);
-	return output;
 }
