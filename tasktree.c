@@ -97,6 +97,7 @@ task *tasklist_get_task_by_path(tasklist tl, const char *path) {
 	//remove last element of sl if it is empty, allowing for trailing slash
 	if (!strcmp(pathlist.items[pathlist.length - 1], "")) {
 		free(pathlist.items[pathlist.length - 1]);
+		pathlist.items[pathlist.length - 1] = NULL;
 		--pathlist.length;
 	}
 
