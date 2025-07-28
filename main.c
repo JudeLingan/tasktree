@@ -5,6 +5,15 @@
 #include "tasktree.h"
 
 #if defined(_WIN32)
+#define LOCALDBPATH "\AppData\Local\tasktree.db"
+
+char *get_db_path() {
+	char *homedir = getenv("USERPROFILE");
+	char *dbpath = (char*)calloc(strlen(LOCALDBPATH) + strlen(homedir) + 1, sizeof(char));
+	strcpy(dbpath, homedir);
+	strcat(dbpath, LOCALDBPATH);
+	return dbpath;
+}
 
 #elif defined(__linux__)
 #include <unistd.h>

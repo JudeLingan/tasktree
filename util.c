@@ -139,6 +139,7 @@ bool stringlist_append(stringlist *sl, char *str) {
 }
 
 /*STRINGLIST FUNCTIONS*/
+
 stringlist new_stringlist() {
 	stringlist out;
 	out.items = NULL;
@@ -147,6 +148,7 @@ stringlist new_stringlist() {
 	return out;
 }
 
+// returns a stringlist wher char* "str" is split by character "ch" with regards to escape character "\"
 stringlist split_by_char(const char *str, char ch) {
 	stringlist out = new_stringlist();
 
@@ -162,14 +164,21 @@ stringlist split_by_char(const char *str, char ch) {
 	long unsigned int end = strlen(str);
 
 	for (long unsigned int i = 0; i <= end; ++i) {
+		//add buffer to stringlist at split character or null terminator
 		if (str[i] == ch || str[i] == '\0') {
 			if (stringlist_append(&out, buffer)) break;
 			strncpy(buffer, "", buffer_length);
 		} 
+		//allows escaping characters
 		else if (str[i] == '\\') {
+			//prevents escaping the null terminator
+			if (str[i + 1] == '\0')
+				continue;
+
 			++i;
 			append_string(buffer, str[i]);
 		}
+		//add character to buffer when it is not the split character
 		else {
 			append_string(buffer, str[i]);
 		}
@@ -180,7 +189,6 @@ stringlist split_by_char(const char *str, char ch) {
 
 void stringlist_free_elements(stringlist sl) {
 	for (int i = 0; i < sl.length; ++i) {
-		printf("%d\n", i);
 		free(sl.items[i]);
 	}
 	free(sl.items);
