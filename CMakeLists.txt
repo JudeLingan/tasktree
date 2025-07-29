@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.5)
+project(tasktree C)
+find_package(SQLite3 REQUIRED)
+add_executable(tasktree main.c tasktree.h tasktree.c util.h util.c)
+target_link_libraries(tasktree PRIVATE SQLite::SQLite3)
