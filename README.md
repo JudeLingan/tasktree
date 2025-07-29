@@ -10,7 +10,7 @@
 * Use *"list"* to list tasks.
 
 # GOALS
-- [ ] Windows support
+- [X] Windows support
 - [ ] Store creation time
 - [ ] Set deadlines
 - [ ] Make a GUI, probably using GTK
