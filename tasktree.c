@@ -236,13 +236,13 @@ int print_task(task tsk) {
 	return 0;
 }
 
-void task_complete(task *tsk) {
+void task_toggle_complete(task *tsk) {
 	if (tsk == NULL) {
 		handle_error("CANNOT COMPLETE NULL TASK\n");
 		return;
 	}
 
-	tsk->completed = true;
+	tsk->completed = !tsk->completed;
 
 	//update database
 	if (db != NULL) {
@@ -250,7 +250,8 @@ void task_complete(task *tsk) {
 			db,
 			NULL,
 			NULL,
-			"UPDATE tasks SET completed = 1 WHERE id = %lld;",
+			"UPDATE tasks SET completed = %d WHERE id = %lld;",
+			tsk->completed,
 			tsk->id
 		);
 	}

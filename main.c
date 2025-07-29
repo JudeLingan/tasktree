@@ -103,7 +103,7 @@ int main() {
 					printf("task %s not found\n", input.items[1]);
 				}
 				else {
-					task_complete(tsk);
+					task_toggle_complete(tsk);
 				}
 			}
 		}

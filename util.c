@@ -1,9 +1,11 @@
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <time.h>
 #include <sqlite3.h>
 #include "util.h"
 
@@ -61,6 +63,27 @@ char *malloc_sprintf(const char* format, ...) {
 	char *out = malloc_vsprintf(format, args);
 	va_end(args);
 	return out;
+}
+
+char *escape_chars(char *str, const char *chars) {
+	size_t len = strlen(str);
+	for (size_t i = 0; str[i] != '\0'; ++i) {
+		for (size_t j = 0; chars[j] != '\0'; ++j) {
+			if (str[i] == chars[j]) {
+				++len;
+				str = realloc(str, len*sizeof(char)); 
+
+				if (str != NULL) {
+					memmove(&str[i + 1], &str[i], len - i + 1);
+					++i;
+				}
+				else {
+					return NULL;
+				}
+			}
+		}
+	}
+	return str;
 }
 
 void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...) {
