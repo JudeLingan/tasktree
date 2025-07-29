@@ -10,8 +10,18 @@
 char *get_input() {
 	size_t buffer_length = 0;
 	char *buffer = NULL;
-	getline(&buffer, &buffer_length, stdin);
-	buffer[strcspn(buffer, "\n")] = '\0';
+
+	//read input until newline
+	char c;
+	int i = 0;
+	c = fgetc(stdin);
+	while (c != EOF && c != '\n') {
+		buffer = realloc(buffer, sizeof(char)*(i + 2));
+		buffer[i] = c;
+		buffer[i + 1] = '\0';
+		++i;
+		c = fgetc(stdin);
+	}
 	
 	char *str = (char*)malloc(strlen(buffer) + 1);
 	strncpy(str, buffer, strlen(buffer) + 1);
