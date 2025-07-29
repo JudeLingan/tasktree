@@ -5,7 +5,7 @@
 #include "tasktree.h"
 
 #if defined(_WIN32)
-#define LOCALDBPATH "\AppData\Local\tasktree.db"
+#define LOCALDBPATH "\\AppData\\Local\\tasktree.db"
 #pragma message("WINDOWS OS DETECTED")
 
 char *get_db_path() {
