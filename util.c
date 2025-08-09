@@ -65,78 +65,6 @@ char *malloc_sprintf(const char* format, ...) {
 	return out;
 }
 
-char *escape_chars(char *str, const char *chars) {
-	size_t len = strlen(str);
-	for (size_t i = 0; str[i] != '\0'; ++i) {
-		for (size_t j = 0; chars[j] != '\0'; ++j) {
-			if (str[i] == chars[j]) {
-				++len;
-				str = realloc(str, len*sizeof(char)); 
-
-				if (str != NULL) {
-					memmove(&str[i + 1], &str[i], len - i + 1);
-					++i;
-				}
-				else {
-					return NULL;
-				}
-			}
-		}
-	}
-	return str;
-}
-
-void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...) {
-	//copies formatted text to sql_code variable
-	va_list args;
-
-	va_start(args, format);
-	char *sql_code = malloc_vsprintf(format, args);
-	va_end(args);
-
-	char* sql_error = NULL;
-
-	//uses passed database to run sql_code, running callback on each item and generating sql_error
-	sqlite3_exec(
-		database,
-		sql_code,
-		callback,
-		var,
-		&sql_error
-	);
-
-	//handle sql_error
-	if (sql_error != NULL) {
-		printf("SQL ERROR: %s\n", sql_error);
-		sqlite3_free(sql_error);
-		sqlite3_close(database);
-		exit(1);
-	}
-	else {
-		printf("SQL \"%s\" SUCCESSFUL\n", sql_code);
-	}
-
-	free(sql_code);
-	free(sql_error);
-}
-
-bool sqlite3_has_table(sqlite3 *database, char *table) {
-	bool* has_table = malloc(sizeof(bool));
-	*has_table = false;
-	sqlite3_exec_by_format(
-		database,
-		callback_set_true,
-		has_table,
-		"SELECT name FROM sqlite_master WHERE type='table' AND name='%s';",
-		table
-	);
-
-	bool result = *has_table;
-	free(has_table);
-	
-	return result;
-}
-
 int append_string(char *s, char c) {
 	int len = strlen(s);
 	s[len] = c;
@@ -149,7 +77,7 @@ bool stringlist_append(stringlist *sl, char *str) {
 	char **new_items = (char**)realloc(sl->items, sizeof(char*)*(sl->length));
 
 	if (new_items == NULL) {
-		handle_error("ERROR: realloc failed: null pointer exception\n");
+		handle_error("realloc failed: null pointer exception\n");
 		sl->items = NULL;
 		sl->length = 0;
 		return true;
@@ -176,7 +104,7 @@ stringlist split_by_char(const char *str, char ch) {
 	stringlist out = new_stringlist();
 
 	if (str == NULL) {
-		handle_error("ERROR: null string\n");
+		handle_error("null string\n");
 		return out;
 	}
 
@@ -223,5 +151,112 @@ void stringlist_free(stringlist *sl) {
 }
 
 void handle_error(char *err) {
-	printf("%s\n", err);
+	printf("ERROR: %s\n", err);
+}
+
+void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...) {
+	//initial variable declarations
+	va_list args;
+	sqlite3_stmt *stmt = NULL;
+	char *sql_error = NULL;
+
+	sqlite3_prepare_v2(database, format,-1, &stmt, NULL);
+
+	va_start(args, format);
+	int num_vals = 0;
+	for (int i = 0; format[i]; ++i) {
+		//execute when a new parameter slot is found
+		if (format[i] == '?') {
+			++num_vals;
+			char *param = va_arg(args, char*);
+			int rc = sqlite3_bind_text(stmt, num_vals, param, -1, SQLITE_TRANSIENT);
+
+			//return and output error if binding fails
+			if (rc != SQLITE_OK) {
+				char *err = malloc_sprintf("binding sqlite param failed: %s", param);
+				handle_error(err);
+				free(err);
+				return;
+			}
+		}
+	}
+	va_end(args);
+
+	//call statement
+	int rc;
+	do {
+		rc = sqlite3_step(stmt);
+
+		if (rc == SQLITE_ROW) {
+			//get values and names of all columns
+			char **vals = NULL;
+			char **names = NULL;
+			int i;
+			for (i = 0; i < sqlite3_data_count(stmt); ++i) {
+				//get column name
+				const char *name = (const char*)sqlite3_column_name(stmt, i);
+				if (name == NULL) {
+					handle_error("failed to retrieve column data");
+					return;
+				}
+				else {
+					names = (char**)realloc(names, (i + 2)*sizeof(char*));
+					names[i] = strdup(name);
+				}
+
+				//get column value
+				const char *val = (const char*)sqlite3_column_text(stmt, i);
+				if (val == NULL) {
+					handle_error("failed to retrieve column data");
+					return;
+				}
+				else {
+					vals = (char**)realloc(vals, (i + 2)*sizeof(char*));
+					vals[i] = strdup(val);
+				}
+			}
+			vals[i] = NULL;
+			names[i] = NULL;
+
+			//run callback function and assign it to variable "success"
+			int failure = (*callback)(var, i, vals, names);
+
+			if (failure != 0) {
+				handle_error("callback failed");
+				return;
+			}
+		}
+		else if (rc != SQLITE_DONE) {
+			handle_error("sqlite3_step failed");
+			return;
+		}
+	} while (rc != SQLITE_DONE);
+
+	//handle sql_error
+	if (sql_error != NULL) {
+		printf("SQL ERROR: %s\n", sql_error);
+		sqlite3_free(sql_error);
+		sqlite3_close(database);
+		exit(1);
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_free(sql_error);
+}
+
+bool sqlite3_has_table(sqlite3 *database, char *table) {
+	bool *has_table = malloc(sizeof(bool));
+	*has_table = false;
+	sqlite3_exec_by_format(
+		database,
+		callback_set_true,
+		has_table,
+		"SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
+		table
+	);
+
+	bool result = *has_table;
+	free(has_table);
+	
+	return result;
 }

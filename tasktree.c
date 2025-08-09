@@ -246,14 +246,18 @@ void task_toggle_complete(task *tsk) {
 
 	//update database
 	if (db != NULL) {
+		char *str_completed = malloc_sprintf("%d", tsk->completed);
+		char *str_id = malloc_sprintf("%lld", tsk->id);
 		sqlite3_exec_by_format(
 			db,
 			NULL,
 			NULL,
-			"UPDATE tasks SET completed = %d WHERE id = %lld;",
-			tsk->completed,
-			tsk->id
+			"UPDATE tasks SET completed = ? WHERE id = ?;",
+			str_completed,
+			str_id
 		);
+		free(str_completed);
+		free(str_id);
 	}
 	else {
 		handle_error("CANNOT COMPLETE TASK, NO DATABASE FOUND\n");
@@ -301,20 +305,22 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 }
 
 void load_child_tasks_from_db(task *parent) {
-	int parentid = 0;
+	long long parentid = 0;
 	if (parent != NULL) {
 		parentid = parent->id;
 	}
 
 	tasklist *parenttl = parent == NULL ? &tl : &parent->tl;
 
+	char *str_parentid = malloc_sprintf("%lld", parentid);
 	sqlite3_exec_by_format(
 		db,
 		callback_load_child_tasks_from_db,
 		parenttl,
-		"SELECT * FROM tasks WHERE parent = %d",
-		parentid
+		"SELECT * FROM tasks WHERE parent = ?",
+		str_parentid
 	);
+	free(str_parentid);
 
 	for(int i = 0; i < parenttl->ntasks; ++i) {
 		load_child_tasks_from_db(&parenttl->tasks[i]);
@@ -387,13 +393,15 @@ static int callback_remove_task_from_db(void *val, int ncolumns, char **values, 
 }
 
 static void tasktree_remove_task_from_db(long long id) {
+	char *str_id = malloc_sprintf("%d", id);
 	sqlite3_exec_by_format(
 		db,
 		callback_remove_task_from_db,
 		NULL,
-		"DELETE FROM tasks WHERE id=%lld;",
-		id
+		"DELETE FROM tasks WHERE id=?;",
+		str_id
 	);
+	free(str_id);
 }
 
 void tasktree_remove_task(task *tsk) {
@@ -483,15 +491,18 @@ void tasktree_add_task(task *tsk, const char *path) {
 	if (parent != NULL) {
 		parentid = parent->id;
 	}
+	
 	//execute sqlite code
+	char *str_parentid = malloc_sprintf("%d", parentid);
 	if (tsk->details != NULL) {
-		char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (%lld, '%s', '%s');";
-		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname, tsk->details);
+		char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (?, '?', '?');";
+		sqlite3_exec_by_format(db, NULL, NULL, sql_format, str_parentid, taskname, tsk->details);
 	}
 	else {
-		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES ('%s', %lld);";
-		sqlite3_exec_by_format(db, NULL, NULL, sql_format, parentid, taskname);
+		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES (?, '?');";
+		sqlite3_exec_by_format(db, NULL, NULL, sql_format, str_parentid, taskname);
 	}
+	free(str_parentid);
 
 	//free local variables
 	free(taskname);

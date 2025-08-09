@@ -6,7 +6,6 @@
 
 #if defined(_WIN32)
 #define LOCALDBPATH "\\AppData\\Local\\tasktree.db"
-#pragma message("WINDOWS OS DETECTED")
 
 char *get_db_path() {
 	char *homedir = getenv("USERPROFILE");
@@ -17,7 +16,6 @@ char *get_db_path() {
 }
 
 #elif defined(__linux__)
-#pragma message("LINUX OS DETECTED")
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
