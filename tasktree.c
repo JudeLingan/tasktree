@@ -245,23 +245,23 @@ void task_toggle_complete(task *tsk) {
 	tsk->completed = !tsk->completed;
 
 	//update database
-	if (db != NULL) {
-		char *str_completed = malloc_sprintf("%d", tsk->completed);
-		char *str_id = malloc_sprintf("%lld", tsk->id);
-		sqlite3_exec_by_format(
-			db,
-			NULL,
-			NULL,
-			"UPDATE tasks SET completed = ? WHERE id = ?;",
-			str_completed,
-			str_id
-		);
-		free(str_completed);
-		free(str_id);
-	}
-	else {
+	if (db == NULL) {
 		handle_error("CANNOT COMPLETE TASK, NO DATABASE FOUND\n");
+		return;
 	}
+
+	char *str_completed = malloc_sprintf("%d", tsk->completed);
+	char *str_id = malloc_sprintf("%lld", tsk->id);
+	sqlite3_exec_by_format(
+		db,
+		NULL,
+		NULL,
+		"UPDATE tasks SET completed = ? WHERE id = ?;",
+		str_completed,
+		str_id
+	);
+	free(str_completed);
+	free(str_id);
 }
 
 /*TASKTREE FUNCTIONS*/
@@ -359,7 +359,7 @@ void tasktree_load(const char *path) {
 }
 
 void tasktree_unload() {
-	sqlite3_close(db);
+	sqlite3_close_v2(db);
 	tasklist_free_elements(&tl);
 }
 

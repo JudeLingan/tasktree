@@ -173,9 +173,10 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 
 			//return and output error if binding fails
 			if (rc != SQLITE_OK) {
-				char *err = malloc_sprintf("binding sqlite param failed: %s", param);
+				char *err = malloc_sprintf("binding sqlite param \"%s\" failed: %d", param, rc);
 				handle_error(err);
 				free(err);
+				sqlite3_finalize(stmt);
 				return;
 			}
 		}
@@ -197,10 +198,11 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 				const char *name = (const char*)sqlite3_column_name(stmt, i);
 				if (name == NULL) {
 					handle_error("failed to retrieve column data");
+					sqlite3_finalize(stmt);
 					return;
 				}
 				else {
-					names = (char**)realloc(names, (i + 2)*sizeof(char*));
+					names = (char**)realloc(names, sizeof(char*)*(i + 2));
 					names[i] = strdup(name);
 				}
 
@@ -208,6 +210,7 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 				const char *val = (const char*)sqlite3_column_text(stmt, i);
 				if (val == NULL) {
 					handle_error("failed to retrieve column data");
+					sqlite3_finalize(stmt);
 					return;
 				}
 				else {
@@ -225,12 +228,25 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 				handle_error("callback failed");
 				return;
 			}
+
+			//free all allocated memory
+			for (int j = 0; j < i; ++j) {
+				free(vals[j]);
+				free(names[j]);
+			}
+
+			free(vals);
+			free(names);
 		}
 		else if (rc != SQLITE_DONE) {
 			handle_error("sqlite3_step failed");
+			sqlite3_finalize(stmt);
 			return;
 		}
 	} while (rc != SQLITE_DONE);
+
+	//finalize sqlite_statement once it is no longer needed
+	sqlite3_finalize(stmt);
 
 	//handle sql_error
 	if (sql_error != NULL) {
@@ -240,7 +256,6 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 		exit(1);
 	}
 
-	sqlite3_finalize(stmt);
 	sqlite3_free(sql_error);
 }
 
