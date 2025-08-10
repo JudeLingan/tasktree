@@ -359,7 +359,7 @@ void tasktree_load(const char *path) {
 }
 
 void tasktree_unload() {
-	sqlite3_close_v2(db);
+	sqlite3_close(db);
 	tasklist_free_elements(&tl);
 }
 

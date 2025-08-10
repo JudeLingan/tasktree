@@ -208,15 +208,15 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 
 				//get column value
 				const char *val = (const char*)sqlite3_column_text(stmt, i);
-				if (val == NULL) {
-					handle_error("failed to retrieve column data");
-					sqlite3_finalize(stmt);
-					return;
-				}
-				else {
+				//if (val == NULL) {
+				//	handle_error("failed to retrieve column data");
+				//	sqlite3_finalize(stmt);
+				//	return;
+				//}
+				//else {
 					vals = (char**)realloc(vals, (i + 2)*sizeof(char*));
-					vals[i] = strdup(val);
-				}
+					vals[i] = val == NULL ? NULL : strdup(val);
+				//}
 			}
 			vals[i] = NULL;
 			names[i] = NULL;
