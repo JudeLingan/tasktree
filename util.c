@@ -169,7 +169,10 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 		if (format[i] == '?') {
 			++num_vals;
 			char *param = va_arg(args, char*);
-			int rc = sqlite3_bind_text(stmt, num_vals, param, -1, SQLITE_TRANSIENT);
+			//binds value to param and stores error to rc
+			int rc = param ==
+				NULL ? sqlite3_bind_null(stmt, num_vals) :
+				sqlite3_bind_text(stmt, num_vals, param, -1, SQLITE_TRANSIENT); 
 
 			//return and output error if binding fails
 			if (rc != SQLITE_OK) {

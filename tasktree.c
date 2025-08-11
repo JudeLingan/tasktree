@@ -495,11 +495,11 @@ void tasktree_add_task(task *tsk, const char *path) {
 	//execute sqlite code
 	char *str_parentid = malloc_sprintf("%d", parentid);
 	if (tsk->details != NULL) {
-		char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (?, '?', '?');";
+		char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (?, ?, ?);";
 		sqlite3_exec_by_format(db, NULL, NULL, sql_format, str_parentid, taskname, tsk->details);
 	}
 	else {
-		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES (?, '?');";
+		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES (?, ?);";
 		sqlite3_exec_by_format(db, NULL, NULL, sql_format, str_parentid, taskname);
 	}
 	free(str_parentid);
