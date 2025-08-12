@@ -74,50 +74,26 @@ int tasklist_increment_tasks(tasklist* tl) {
 	return 0;
 }
 
-/*
- * Get first task with name in tasklist.
- * breaks with multiple tasks that have the same name.
- * will most likely be replaced with ids once a GUI is made.
-*/
-task *tasklist_get_task_by_name(tasklist tl, const char *name) {
-	//prevents NULL errors
-	if (name == NULL || tl.tasks == NULL || tl.ntasks <= 0) {
-		return NULL;
-	}
-
+task *tasklist_get_task(tasklist tl, int64_t id) {
 	//get task
 	for (int i = 0; i < tl.ntasks; ++i) {
-	  if (!strcmp(tl.tasks[i].name, name)) {
+		if(tl.tasks[i].id == id) {
 			return &tl.tasks[i];
-	  }
+		}
 	}
 
-	//return NULL if no task is found with given name
+	//return null when no task is found
 	return NULL;
 }
 
-task *tasklist_get_task_by_path(tasklist tl, const char *path) {
-	//prevent errors from null
-	if (path == NULL) {
-		return NULL;
-	}
-
-	stringlist pathlist = split_by_char(path, '/');
-
-	//remove last element of sl if it is empty, allowing for trailing slash
-	if (!strcmp(pathlist.items[pathlist.length - 1], "")) {
-		free(pathlist.items[pathlist.length - 1]);
-		pathlist.items[pathlist.length - 1] = NULL;
-		--pathlist.length;
-	}
+task *tasklist_get_task_by_path(tasklist tl, int64_t *path) {
 
 	task *tsk = NULL;
 
-	for (int i = 0; i < pathlist.length; ++i) {
-		tsk = tasklist_get_task_by_name(tl, pathlist.items[i]);
+	for (int i = 0; &path[i] != NULL; ++i) {
+		tsk = tasklist_get_task(tl, path[i]);
 
 		if (tsk == NULL) {
-			stringlist_free_elements(pathlist);
 			return NULL;
 		}
 		else {
@@ -125,7 +101,6 @@ task *tasklist_get_task_by_path(tasklist tl, const char *path) {
 		}
 	}
 
-	stringlist_free_elements(pathlist);
 	return tsk;
 }
 
@@ -140,7 +115,7 @@ int tasklist_add_task(tasklist *tl, task t) {
 	return 0;
 }
 
-void tasklist_remove_task(tasklist *tl, long long id) {
+void tasklist_remove_task(tasklist *tl, int64_t id) {
 	//prevent crashes
 	if (tl == NULL) {
 		handle_error("TASK HAS NULL PARENT");
@@ -177,7 +152,7 @@ void tasklist_free_elements(tasklist *tl) {
 
 /*TASK FUNCTIONS*/
 
-task new_task(char *name, char *details, long long id) {
+task new_task(char *name, char *details, int64_t id) {
 	task tsk = {
 		.id = id,
 		.name = strdup(name),
@@ -268,7 +243,7 @@ void task_toggle_complete(task *tsk) {
 static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **values, char **columns) {
 	char *name = NULL;
 	char *details = NULL;
-	long long id = -1;
+	int64_t id = -1;
 	bool completed = false;
 
 	for (int i = 0; i < ncolumns; ++i) {
@@ -305,7 +280,7 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 }
 
 void load_child_tasks_from_db(task *parent) {
-	long long parentid = 0;
+	int64_t parentid = 0;
 	if (parent != NULL) {
 		parentid = parent->id;
 	}
@@ -374,12 +349,12 @@ task *tasktree_get_task(const char *path) {
 }
 
 //TODO: make this neater
-static void tasktree_remove_task_from_db(long long id);
+static void tasktree_remove_task_from_db(int64_t id);
 
 static int callback_remove_task_from_db(void *val, int ncolumns, char **values, char **columns) {
 	UNUSED(val);
 
-	long long id = 0;
+	int64_t id = 0;
 
 	for (int i = 0; i < ncolumns; ++i) {
 		if (!strcmp(columns[i], "id")) {
@@ -392,7 +367,7 @@ static int callback_remove_task_from_db(void *val, int ncolumns, char **values, 
 	return 0;
 }
 
-static void tasktree_remove_task_from_db(long long id) {
+static void tasktree_remove_task_from_db(int64_t id) {
 	char *str_id = malloc_sprintf("%d", id);
 	sqlite3_exec_by_format(
 		db,
@@ -486,7 +461,7 @@ void tasktree_add_task(task *tsk, const char *path) {
 	}
 
 	//enter new task into database
-	long long parentid = 0;
+	int64_t parentid = 0;
 
 	if (parent != NULL) {
 		parentid = parent->id;

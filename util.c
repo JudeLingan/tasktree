@@ -89,6 +89,67 @@ bool stringlist_append(stringlist *sl, char *str) {
 	return false;
 }
 
+/* voidlist functions */
+
+voidlist new_voidlist() {
+	voidlist out;
+	out.items = NULL;
+	out.length = 0;
+
+	return out;
+}
+
+// returns a voidlist wher char* "str" is split by character "ch" with regards to escape character "\"
+voidlist split_by_char(const char *str, char ch) {
+	voidlist out = new_voidlist();
+
+	if (str == NULL) {
+		handle_error("null string\n");
+		return out;
+	}
+
+	int buffer_length = strlen(str) + 1;
+	char buffer[buffer_length];
+	strncpy(buffer, "", buffer_length);
+
+	long unsigned int end = strlen(str);
+
+	for (long unsigned int i = 0; i <= end; ++i) {
+		//add buffer to voidlist at split character or null terminator
+		if (str[i] == ch || str[i] == '\0') {
+			if (voidlist_append(&out, buffer)) break;
+			strncpy(buffer, "", buffer_length);
+		} 
+		//allows escaping characters
+		else if (str[i] == '\\') {
+			//prevents escaping the null terminator
+			if (str[i + 1] == '\0')
+				continue;
+
+			++i;
+			append_string(buffer, str[i]);
+		}
+		//add character to buffer when it is not the split character
+		else {
+			append_string(buffer, str[i]);
+		}
+	}
+
+	return out;
+}
+
+void voidlist_free_elements(voidlist sl) {
+	for (int i = 0; i < sl.length; ++i) {
+		free(sl.items[i]);
+	}
+	free(sl.items);
+}
+
+void voidlist_free(voidlist *sl) {
+	voidlist_free_elements(*sl);
+	free(sl);
+}
+
 /*STRINGLIST FUNCTIONS*/
 
 stringlist new_stringlist() {
