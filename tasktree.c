@@ -99,6 +99,7 @@ task *tasklist_get_task_by_path(tasklist tl, const int64_t *path) {
 	task *tsk = NULL;
 
 	for (int i = 0; path[i]; ++i) {
+		printf("id %d: %ld", i + 1, path[i]);
 		tsk = tasklist_get_task(tl, path[i]);
 
 		if (tsk == NULL) {
