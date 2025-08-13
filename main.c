@@ -59,16 +59,17 @@ int main() {
 			printf("Enter any details: ");
 			char *tasktext = get_input();
 
-			char *path = NULL;
+			int64_t *taskpath; 
 
 			if (input.length == 2) {
-				printf("%s\n", input.items[1]);
-				path = input.items[1];
+				taskpath = string_to_id_path(input.items[1]);
+			}
+			else {
+				taskpath = NULL;
 			}
 
 			task tsk = new_task(taskname, tasktext, -1);
 
-			int64_t *taskpath = string_to_id_path(input.items[1]);
 			tasktree_add_task(&tsk, taskpath);
 			free(taskpath);
 

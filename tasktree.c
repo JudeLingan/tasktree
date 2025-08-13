@@ -9,7 +9,8 @@
 
 char *get_input() {
 	size_t buffer_length = 0;
-	char *buffer = NULL;
+	char *buffer = (char*)malloc(sizeof(char*));
+	*buffer = '\0';
 
 	//read input until newline
 	char c;
@@ -23,7 +24,7 @@ char *get_input() {
 		c = fgetc(stdin);
 	}
 	
-	char *str = (char*)malloc(strlen(buffer) + 1);
+	char *str = (char*)malloc((strlen(buffer) + 1)*sizeof(char));
 	strncpy(str, buffer, strlen(buffer) + 1);
 
 	free(buffer);
@@ -96,10 +97,13 @@ task *tasklist_get_task(tasklist tl, int64_t id) {
 
 task *tasklist_get_task_by_path(tasklist tl, const int64_t *path) {
 
+	if (path == NULL) {
+		return NULL;
+	}
+
 	task *tsk = NULL;
 
 	for (int i = 0; path[i]; ++i) {
-		printf("id %d: %ld", i + 1, path[i]);
 		tsk = tasklist_get_task(tl, path[i]);
 
 		if (tsk == NULL) {
