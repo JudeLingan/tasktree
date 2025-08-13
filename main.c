@@ -68,7 +68,9 @@ int main() {
 
 			task tsk = new_task(taskname, tasktext, -1);
 
-			tasktree_add_task(&tsk, path);
+			int64_t *taskpath = string_to_id_path(input.items[1]);
+			tasktree_add_task(&tsk, taskpath);
+			free(taskpath);
 
 			task_free_elements(tsk);
 			free(taskname);
@@ -82,7 +84,9 @@ int main() {
 				printf("'get' command requires a task path\n");
 			}
 			else {
-				task *tsk = tasktree_get_task(input.items[1]);
+				int64_t *taskpath = string_to_id_path(input.items[1]);
+				task *tsk = tasktree_get_task(taskpath);
+				free(taskpath);
 				if (tsk == NULL) {
 					printf("task %s not found\n", input.items[1]);
 				}
@@ -96,7 +100,9 @@ int main() {
 				printf("'get' command requires a task path\n");
 			}
 			else {
-				task *tsk = tasktree_get_task(input.items[1]);
+				int64_t *taskpath = string_to_id_path(input.items[1]);
+				task *tsk = tasktree_get_task(taskpath);
+				free(taskpath);
 				if (tsk == NULL) {
 					printf("task %s not found\n", input.items[1]);
 				}
@@ -110,7 +116,9 @@ int main() {
 				printf("'remove' command requires a task path\n");
 			}
 			else {
-				tasktree_remove_task_by_path(input.items[1]);
+				int64_t *taskpath = string_to_id_path(input.items[1]);
+				tasktree_remove_task_by_path(taskpath);
+				free(taskpath);
 			}
 		}
 		else if (!strcmp(input.items[0], "done")) {

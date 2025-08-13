@@ -51,10 +51,26 @@ bool string_is_empty(char *str) {
 bool is_pure_num(const char *str) {
 	for (int i = 0; str[i] != '\0'; ++i) {
 		printf("%d", i);
-		if(!isdigit(str[i]))
+		if(!isdigit(str[i])) {
 			return false;
+		}
 	}
 	return true;
+}
+
+int64_t *string_to_id_path(const char *str) {
+	stringlist sl = split_by_char(str, '/');
+	int64_t *result = NULL;
+	for (int i = 0; i < sl.length; ++i) {
+		if (is_pure_num(sl.items[i])) {
+			result = (int64_t*)realloc(result, (i + 2)*sizeof(int64_t));
+		}
+		else {
+			return NULL;
+		}
+	}
+
+	return result;
 }
 
 char *malloc_sprintf(const char* format, ...) {
@@ -87,67 +103,6 @@ bool stringlist_append(stringlist *sl, char *str) {
 	sl->items[sl->length - 1] = strdup(str);
 
 	return false;
-}
-
-/* voidlist functions */
-
-voidlist new_voidlist() {
-	voidlist out;
-	out.items = NULL;
-	out.length = 0;
-
-	return out;
-}
-
-// returns a voidlist wher char* "str" is split by character "ch" with regards to escape character "\"
-voidlist split_by_char(const char *str, char ch) {
-	voidlist out = new_voidlist();
-
-	if (str == NULL) {
-		handle_error("null string\n");
-		return out;
-	}
-
-	int buffer_length = strlen(str) + 1;
-	char buffer[buffer_length];
-	strncpy(buffer, "", buffer_length);
-
-	long unsigned int end = strlen(str);
-
-	for (long unsigned int i = 0; i <= end; ++i) {
-		//add buffer to voidlist at split character or null terminator
-		if (str[i] == ch || str[i] == '\0') {
-			if (voidlist_append(&out, buffer)) break;
-			strncpy(buffer, "", buffer_length);
-		} 
-		//allows escaping characters
-		else if (str[i] == '\\') {
-			//prevents escaping the null terminator
-			if (str[i + 1] == '\0')
-				continue;
-
-			++i;
-			append_string(buffer, str[i]);
-		}
-		//add character to buffer when it is not the split character
-		else {
-			append_string(buffer, str[i]);
-		}
-	}
-
-	return out;
-}
-
-void voidlist_free_elements(voidlist sl) {
-	for (int i = 0; i < sl.length; ++i) {
-		free(sl.items[i]);
-	}
-	free(sl.items);
-}
-
-void voidlist_free(voidlist *sl) {
-	voidlist_free_elements(*sl);
-	free(sl);
 }
 
 /*STRINGLIST FUNCTIONS*/
@@ -215,7 +170,7 @@ void handle_error(char *err) {
 	printf("ERROR: %s\n", err);
 }
 
-void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...) {
+int sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...) {
 	//initial variable declarations
 	va_list args;
 	sqlite3_stmt *stmt = NULL;
@@ -223,6 +178,7 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 
 	sqlite3_prepare_v2(database, format,-1, &stmt, NULL);
 
+	//bind args
 	va_start(args, format);
 	int num_vals = 0;
 	for (int i = 0; format[i]; ++i) {
@@ -241,7 +197,7 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 				handle_error(err);
 				free(err);
 				sqlite3_finalize(stmt);
-				return;
+				return rc;
 			}
 		}
 	}
@@ -249,78 +205,63 @@ void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, cha
 
 	//call statement
 	int rc;
-	do {
-		rc = sqlite3_step(stmt);
+	for (rc = sqlite3_step(stmt); rc != SQLITE_DONE; rc = sqlite3_step(stmt)) {
 
-		if (rc == SQLITE_ROW) {
-			//get values and names of all columns
-			char **vals = NULL;
-			char **names = NULL;
-			int i;
-			for (i = 0; i < sqlite3_data_count(stmt); ++i) {
-				//get column name
-				const char *name = (const char*)sqlite3_column_name(stmt, i);
-				if (name == NULL) {
-					handle_error("failed to retrieve column data");
-					sqlite3_finalize(stmt);
-					return;
-				}
-				else {
-					names = (char**)realloc(names, sizeof(char*)*(i + 2));
-					names[i] = strdup(name);
-				}
-
-				//get column value
-				const char *val = (const char*)sqlite3_column_text(stmt, i);
-				//if (val == NULL) {
-				//	handle_error("failed to retrieve column data");
-				//	sqlite3_finalize(stmt);
-				//	return;
-				//}
-				//else {
-					vals = (char**)realloc(vals, (i + 2)*sizeof(char*));
-					vals[i] = val == NULL ? NULL : strdup(val);
-				//}
-			}
-			vals[i] = NULL;
-			names[i] = NULL;
-
-			//run callback function and assign it to variable "success"
-			int failure = (*callback)(var, i, vals, names);
-
-			if (failure != 0) {
-				handle_error("callback failed");
-				return;
-			}
-
-			//free all allocated memory
-			for (int j = 0; j < i; ++j) {
-				free(vals[j]);
-				free(names[j]);
-			}
-
-			free(vals);
-			free(names);
-		}
-		else if (rc != SQLITE_DONE) {
+		if (rc != SQLITE_ROW) {
 			handle_error("sqlite3_step failed");
-			sqlite3_finalize(stmt);
-			return;
+			break;
 		}
-	} while (rc != SQLITE_DONE);
+
+		//get values and names of all columns
+		char **vals = NULL;
+		char **names = NULL;
+		int i;
+		for (i = 0; i < sqlite3_data_count(stmt); ++i) {
+			//get column name
+			const char *name = (const char*)sqlite3_column_name(stmt, i);
+			names = (char**)realloc(names, sizeof(char*)*(i + 2));
+			names[i] = strdup(name);
+
+			//get column value
+			const char *val = (const char*)sqlite3_column_text(stmt, i);
+			vals = (char**)realloc(vals, (i + 2)*sizeof(char*));
+			vals[i] = val == NULL ? NULL : strdup(val);
+		}
+		vals[i] = NULL;
+		names[i] = NULL;
+
+		//run callback function and assign it to variable "success"
+		int cb = (*callback)(var, i, vals, names);
+
+		//free all allocated memory
+		for (int j = 0; j < i; ++j) {
+			free(vals[j]);
+			free(names[j]);
+		}
+
+		free(vals);
+		free(names);
+
+		//abort if callback fails
+		if (cb != 0) {
+			handle_error("callback failed");
+			rc = SQLITE_ABORT;
+			break;
+		}
+	}
 
 	//finalize sqlite_statement once it is no longer needed
 	sqlite3_finalize(stmt);
 
 	//handle sql_error
 	if (sql_error != NULL) {
-		printf("SQL ERROR: %s\n", sql_error);
-		sqlite3_free(sql_error);
-		sqlite3_close(database);
-		exit(1);
+		handle_error(sql_error);
 	}
 
 	sqlite3_free(sql_error);
+
+	//if rc is not SQLITE_DONE, return an error
+	return rc == SQLITE_DONE ? 0 : rc;
 }
 
 bool sqlite3_has_table(sqlite3 *database, char *table) {

@@ -51,17 +51,13 @@ tasklist new_tasklist() {
 		.tasks = NULL,
 		.ntasks = 0
 	};
+
 	return tl;
 }
 
 int tasklist_increment_tasks(tasklist* tl) {
 	task *new_tasks;
-	if (tl->tasks != NULL) {
-		new_tasks = (task*)realloc(tl->tasks, (tl->ntasks + 1)*sizeof(task));
-	}
-	else {
-		new_tasks = (task*)malloc((tl->ntasks + 1)*sizeof(task));
-	}
+	new_tasks = (task*)realloc(tl->tasks, (tl->ntasks + 1)*sizeof(task));
 
 	if (new_tasks == NULL) {
 		handle_error("ERROR: task reallocation failed\n");
@@ -72,6 +68,18 @@ int tasklist_increment_tasks(tasklist* tl) {
 	++tl->ntasks;
 
 	return 0;
+}
+
+bool tasklist_has_task(tasklist tl, const char *name) {
+	if (name == NULL) return false;
+
+	for (int i = 0; i < tl.ntasks; ++i) {
+		if (strcmp(tl.tasks[i].name, name) == 0) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 task *tasklist_get_task(tasklist tl, int64_t id) {
@@ -86,15 +94,15 @@ task *tasklist_get_task(tasklist tl, int64_t id) {
 	return NULL;
 }
 
-task *tasklist_get_task_by_path(tasklist tl, int64_t *path) {
+task *tasklist_get_task_by_path(tasklist tl, const int64_t *path) {
 
 	task *tsk = NULL;
 
-	for (int i = 0; &path[i] != NULL; ++i) {
+	for (int i = 0; path[i]; ++i) {
 		tsk = tasklist_get_task(tl, path[i]);
 
 		if (tsk == NULL) {
-			return NULL;
+			break;
 		}
 		else {
 			tl = tsk->tl;
@@ -152,7 +160,7 @@ void tasklist_free_elements(tasklist *tl) {
 
 /*TASK FUNCTIONS*/
 
-task new_task(char *name, char *details, int64_t id) {
+task new_task(const char *name, const char *details, int64_t id) {
 	task tsk = {
 		.id = id,
 		.name = strdup(name),
@@ -195,7 +203,7 @@ int print_task(task tsk) {
 
 	for (int i = 0; i < indent; ++i) printf("\t");
 
-	printf(tsk.completed ? GREEN("%s\n") : RED("%s\n"), tsk.name);
+	printf(tsk.completed ? GREEN("#%d: %s\n") : RED("#%d: %s\n"), tsk.id, tsk.name);
 
 	if (!string_is_empty(tsk.details)) {
 		for (int i = 0; i < indent; ++i) printf("\t");
@@ -344,7 +352,7 @@ void tasktree_print() {
 	}
 }
 
-task *tasktree_get_task(const char *path) {
+task *tasktree_get_task(const int64_t *path) {
 	return tasklist_get_task_by_path(tl, path);
 }
 
@@ -393,66 +401,19 @@ void tasktree_remove_task(task *tsk) {
 	tasklist_remove_task(tsk->parent, tsk->id);
 }
 
-void tasktree_remove_task_by_path(const char *path) {
+void tasktree_remove_task_by_path(const int64_t *path) {
 	tasktree_remove_task(tasklist_get_task_by_path(tl, path));
 }
 
-/*
- * adds to a number after the name until the name is unique.
- * this prevents duplicate names.
- * returns a character pointer with a unique name.
- */
-char *tasklist_get_next_available_name(tasklist tl, char* name) {
-	//prevents NULL errors
-	if (name == NULL) {
-		return NULL;
-	}
-
-	char *numberless = NULL;
-	char *strnum = &name[0];
-	int num = 0;
-
-	//sets i to the first character that only has numbers after it
-	int i = 0;
-	for (i = 0; is_pure_num(strnum) == false && strnum[0] != '\0'; ++i) {
-		strnum = &strnum[1];
-	}
-
-	//sets numberless to everything before the number at the end
-	numberless = (char*)malloc(sizeof(char*)*(i+1));
-	strncpy(numberless, name, i);
-	numberless[i] = '\0';
-
-	//increases number until name is available, then assigns it to "result"
-	num = atoi(strnum);
-	char *result = NULL;
-
-	do {
-		free(result);
-		if (num == 0) {
-			result = malloc_sprintf("%s", numberless);
-		}
-		else {
-			result = malloc_sprintf("%s%d", numberless, num);
-		}
-		num += 1;
-	} while (tasklist_get_task_by_name(tl, result) != NULL);
-
-	free(numberless);
-
-	return result;
-}
-
-void tasktree_add_task(task *tsk, const char *path) {
+void tasktree_add_task(task *tsk, const int64_t *path) {
 	printf("adding task\n");
 
 	//variable declarations
 	task *parent = tasklist_get_task_by_path(tl, path);                             //parent task
 	tasklist *parentlist = path == NULL ? &tl : &parent->tl;                        //parent tasklist
-	char *taskname = tasklist_get_next_available_name(*parentlist, tsk->name);      //name of task
 
 	//create new task in memory
-	tasklist_add_task(parentlist, new_task(taskname, tsk->details, tsk->id));
+	tasklist_add_task(parentlist, new_task(tsk->name, tsk->details, tsk->id));
 
 	//bypass database entry if database not found or task is already inserted
 	if (db == NULL || tsk->id > 0) {
@@ -469,18 +430,19 @@ void tasktree_add_task(task *tsk, const char *path) {
 	
 	//execute sqlite code
 	char *str_parentid = malloc_sprintf("%d", parentid);
-	if (tsk->details != NULL) {
-		char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (?, ?, ?);";
-		sqlite3_exec_by_format(db, NULL, NULL, sql_format, str_parentid, taskname, tsk->details);
-	}
-	else {
-		char sql_format[] = "INSERT INTO tasks (parent, name) VALUES (?, ?);";
-		sqlite3_exec_by_format(db, NULL, NULL, sql_format, str_parentid, taskname);
-	}
-	free(str_parentid);
+	char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (?, ?, ?);";
 
-	//free local variables
-	free(taskname);
+	sqlite3_exec_by_format(
+		db,
+		NULL,
+		NULL,
+		sql_format,
+		str_parentid,
+		tsk->name,
+		tsk->details
+	);
+
+	free(str_parentid);
 
 	//set id of task to the one given by the database
 	parentlist->tasks[parentlist->ntasks - 1].id = sqlite3_last_insert_rowid(db);

@@ -1,5 +1,6 @@
 #include <sqlite3.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "util.h"
 
 #ifndef TASKTREE_H
@@ -23,7 +24,7 @@ struct task {
 
 //char *malloc_sprintf(const char* format, ...);
 //int append_string(char *s, char c);
-task new_task(char *name, char *data, long long id);
+task new_task(const char *name, const char *data, int64_t id);
 void task_free_elements(task tsk);
 int task_free(task *tsk);
 int task_add_task(task* branch, task tsk);
@@ -34,8 +35,8 @@ stringlist stringlist_input();
 void tasktree_load(const char *path);
 void tasktree_unload();
 void tasktree_print();
-void tasktree_add_task(task *tsk, const char* path);
-task *tasktree_get_task(const char *path);
-void tasktree_remove_task_by_path(const char *path);
+void tasktree_add_task(task *tsk, const int64_t *path);
+task *tasktree_get_task(const int64_t *path);
+void tasktree_remove_task_by_path(const int64_t *path);
 
 #endif

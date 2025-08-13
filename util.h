@@ -1,5 +1,6 @@
 #include <sqlite3.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -19,11 +20,12 @@ typedef struct stringlist {
 } stringlist;
 
 bool string_is_empty(char *str);
+int64_t *string_to_id_path(const char *str);
 char *malloc_sprintf(const char *format, ...);
 bool is_pure_num(const char *str);
 void handle_error(char *err);
 bool sqlite3_has_table(sqlite3 *database, char *table);
-void sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...);
+int sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...);
 int append_string(char *s, char c);
 stringlist split_by_char(const char *str, char ch);
 void stringlist_free_elements(stringlist sl);
