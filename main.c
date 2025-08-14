@@ -82,12 +82,11 @@ int main() {
 		}
 		else if (!strcmp(input.items[0], "get")) {
 			if (input.length < 2) {
-				printf("'get' command requires a task path\n");
+				printf("'get' command requires a task id\n");
 			}
 			else {
-				int64_t *taskpath = string_to_id_path(input.items[1]);
-				task *tsk = tasktree_get_task(taskpath);
-				free(taskpath);
+				int64_t id = atoi(input.items[1]);
+				task *tsk = tasktree_get_task_by_id(id);
 				if (tsk == NULL) {
 					printf("task %s not found\n", input.items[1]);
 				}

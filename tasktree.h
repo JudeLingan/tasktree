@@ -32,6 +32,7 @@ void task_toggle_complete(task *tsk);
 int print_task(task tsk);
 char *get_input();
 stringlist stringlist_input();
+task *tasktree_get_task_by_id(int64_t id);
 void tasktree_load(const char *path);
 void tasktree_unload();
 void tasktree_print();
