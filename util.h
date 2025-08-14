@@ -25,7 +25,7 @@ char *malloc_sprintf(const char *format, ...);
 bool is_pure_num(const char *str);
 void handle_error(char *err);
 bool sqlite3_has_table(sqlite3 *database, char *table);
-int sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...);
+int sqlite3_exec_by_format(sqlite3 *database, const char *format, int (*callback)(void *, int, char **, char **), void *var, ...);
 int append_string(char *s, char c);
 stringlist split_by_char(const char *str, char ch);
 void stringlist_free_elements(stringlist sl);

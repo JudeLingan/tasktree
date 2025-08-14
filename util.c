@@ -175,7 +175,7 @@ void handle_error(char *err) {
 	printf("ERROR: %s\n", err);
 }
 
-int sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char **, char **), void *var, const char *format, ...) {
+int sqlite3_exec_by_format(sqlite3 *database, const char *format, int (*callback)(void *, int, char **, char **), void *var, ...) {
 	//initial variable declarations
 	va_list args;
 	sqlite3_stmt *stmt = NULL;
@@ -184,7 +184,7 @@ int sqlite3_exec_by_format(sqlite3 *database,  int (*callback)(void *, int, char
 	sqlite3_prepare_v2(database, format,-1, &stmt, NULL);
 
 	//bind args
-	va_start(args, format);
+	va_start(args, var);
 	int num_vals = 0;
 	for (int i = 0; format[i]; ++i) {
 		//execute when a new parameter slot is found
@@ -274,9 +274,9 @@ bool sqlite3_has_table(sqlite3 *database, char *table) {
 	*has_table = false;
 	sqlite3_exec_by_format(
 		database,
+		"SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
 		callback_set_true,
 		has_table,
-		"SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
 		table
 	);
 

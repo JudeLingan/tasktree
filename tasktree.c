@@ -207,7 +207,7 @@ int task_free(task *tsk) {
 }
 
 int task_add_task(task *root, task branch) {
-	int addfailure = tasklist_add_task(&root->tl, branch);
+	int addfailure = tasklist_add_task(root == NULL ? &rootlist : &root->tl, branch);
 	if (addfailure == 1) {
 		return 1;
 	}
@@ -256,9 +256,9 @@ void task_toggle_complete(task *tsk) {
 	char *str_id = malloc_sprintf("%lld", tsk->id);
 	sqlite3_exec_by_format(
 		db,
-		NULL,
-		NULL,
 		"UPDATE tasks SET completed = ? WHERE id = ?;",
+		NULL,
+		NULL,
 		str_completed,
 		str_id
 	);
@@ -319,15 +319,16 @@ void load_child_tasks_from_db(task *parent) {
 	char *str_parentid = malloc_sprintf("%lld", parentid);
 	sqlite3_exec_by_format(
 		db,
+		"SELECT * FROM tasks WHERE parent = ?",
 		callback_load_child_tasks_from_db,
 		parent,
-		"SELECT * FROM tasks WHERE parent = ?",
 		str_parentid
 	);
 	free(str_parentid);
 
-	for(int i = 0; i < parent->tl.ntasks; ++i) {
-		load_child_tasks_from_db(&parent->tl.tasks[i]);
+	tasklist parentlist = parent == NULL ? rootlist : parent->tl;
+	for(int i = 0; i < parentlist.ntasks; ++i) {
+		load_child_tasks_from_db(&parentlist.tasks[i]);
 	}
 }
 
@@ -400,9 +401,9 @@ static void tasktree_remove_task_from_db(int64_t id) {
 	char *str_id = malloc_sprintf("%d", id);
 	sqlite3_exec_by_format(
 		db,
+		"DELETE FROM tasks WHERE id=?;",
 		callback_remove_task_from_db,
 		NULL,
-		"DELETE FROM tasks WHERE id=?;",
 		str_id
 	);
 	free(str_id);
@@ -455,9 +456,9 @@ void tasktree_add_task(task *tsk, const int64_t *path) {
 
 	sqlite3_exec_by_format(
 		db,
-		NULL,
-		NULL,
 		sql_format,
+		NULL,
+		NULL,
 		str_parentid,
 		tsk->name,
 		tsk->details
