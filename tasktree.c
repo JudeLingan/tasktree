@@ -40,10 +40,8 @@ stringlist stringlist_input() {
 	return output;
 }
 
-tasklist new_tasklist();
-
-tasklist tl = {.tasks = NULL, .ntasks = 0};
 sqlite3 *db = NULL;
+tasklist rootlist = {.tasks = NULL, .ntasks = 0};
 
 /*TASKLIST FUNCTIONS*/
 
@@ -125,6 +123,7 @@ int tasklist_add_task(tasklist *tl, task t) {
 
 	t.parent = tl;
 	tl->tasks[tl->ntasks - 1] = t;
+
 	return 0;
 }
 
@@ -161,6 +160,21 @@ void tasklist_free_elements(tasklist *tl) {
 
 	tl->ntasks = 0;
 	tl->tasks = NULL;
+}
+
+task *tasklist_get_task_by_id(tasklist tl, int64_t id) {
+	for (int i = 0; i < tl.ntasks; ++i) {
+		task *in = tasklist_get_task_by_id(tl.tasks[i].tl, id);
+		if (in != NULL) {
+			return in;
+		}
+
+		if (tl.tasks[i].id == id) {
+			return &tl.tasks[i];
+		}
+	}
+
+	return NULL;
 }
 
 /*TASK FUNCTIONS*/
@@ -253,12 +267,16 @@ void task_toggle_complete(task *tsk) {
 }
 
 /*TASKTREE FUNCTIONS*/
+task *tasktree_get_task_by_id(int64_t id) {
+	return tasklist_get_task_by_id(rootlist, id);
+}
 static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **values, char **columns) {
 	char *name = NULL;
 	char *details = NULL;
 	int64_t id = -1;
 	bool completed = false;
 
+	//load columns into variables
 	for (int i = 0; i < ncolumns; ++i) {
 		char *val = values[i];
 		char *column = columns[i];
@@ -280,11 +298,11 @@ static int callback_load_child_tasks_from_db(void *in, int ncolumns, char **valu
 		}
 	}
 
-	tasklist *parentlist = (tasklist*)in;
+	task *parent = (task*)in;
 	task tsk = new_task(name, details, id);
 	tsk.completed = completed;
 
-	tasklist_add_task(parentlist, tsk);
+	task_add_task(parent, tsk);
 
 	free(name);
 	free(details);
@@ -298,20 +316,18 @@ void load_child_tasks_from_db(task *parent) {
 		parentid = parent->id;
 	}
 
-	tasklist *parenttl = parent == NULL ? &tl : &parent->tl;
-
 	char *str_parentid = malloc_sprintf("%lld", parentid);
 	sqlite3_exec_by_format(
 		db,
 		callback_load_child_tasks_from_db,
-		parenttl,
+		parent,
 		"SELECT * FROM tasks WHERE parent = ?",
 		str_parentid
 	);
 	free(str_parentid);
 
-	for(int i = 0; i < parenttl->ntasks; ++i) {
-		load_child_tasks_from_db(&parenttl->tasks[i]);
+	for(int i = 0; i < parent->tl.ntasks; ++i) {
+		load_child_tasks_from_db(&parent->tl.tasks[i]);
 	}
 }
 
@@ -348,17 +364,17 @@ void tasktree_load(const char *path) {
 
 void tasktree_unload() {
 	sqlite3_close(db);
-	tasklist_free_elements(&tl);
+	tasklist_free_elements(&rootlist);
 }
 
 void tasktree_print() {
-	for(int i = 0; i < tl.ntasks; ++i) {
-		print_task(tl.tasks[i]); 
+	for(int i = 0; i < rootlist.ntasks; ++i) {
+		print_task(rootlist.tasks[i]); 
 	}
 }
 
 task *tasktree_get_task(const int64_t *path) {
-	return tasklist_get_task_by_path(tl, path);
+	return tasklist_get_task_by_path(rootlist, path);
 }
 
 //TODO: make this neater
@@ -407,15 +423,15 @@ void tasktree_remove_task(task *tsk) {
 }
 
 void tasktree_remove_task_by_path(const int64_t *path) {
-	tasktree_remove_task(tasklist_get_task_by_path(tl, path));
+	tasktree_remove_task(tasklist_get_task_by_path(rootlist, path));
 }
 
 void tasktree_add_task(task *tsk, const int64_t *path) {
 	printf("adding task\n");
 
 	//variable declarations
-	task *parent = tasklist_get_task_by_path(tl, path);                             //parent task
-	tasklist *parentlist = path == NULL ? &tl : &parent->tl;                        //parent tasklist
+	task *parent = tasklist_get_task_by_path(rootlist, path);                             //parent task
+	tasklist *parentlist = path == NULL ? &rootlist : &parent->tl;                        //parent tasklist
 
 	//create new task in memory
 	tasklist_add_task(parentlist, new_task(tsk->name, tsk->details, tsk->id));
@@ -452,3 +468,4 @@ void tasktree_add_task(task *tsk, const int64_t *path) {
 	//set id of task to the one given by the database
 	parentlist->tasks[parentlist->ntasks - 1].id = sqlite3_last_insert_rowid(db);
 }
+
