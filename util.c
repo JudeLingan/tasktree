@@ -58,26 +58,6 @@ bool is_pure_num(const char *str) {
 	return true;
 }
 
-int64_t *string_to_id_path(const char *str) {
-	stringlist sl = split_by_char(str, '/');
-	int64_t *result = malloc(sizeof(int64_t));
-	int i = 0;
-	for (i = 0; i < sl.length; ++i) {
-		if (is_pure_num(sl.items[i])) {
-			result = (int64_t*)realloc(result, (i + 2)*sizeof(int64_t));
-			result[i] = atoi(sl.items[i]);
-		}
-		else {
-			stringlist_free_elements(sl);
-			free(result);
-			return NULL;
-		}
-	}
-	result[i] = 0;
-	stringlist_free_elements(sl);
-	return result;
-}
-
 char *malloc_sprintf(const char* format, ...) {
 	va_list args;
 	va_start(args, format);

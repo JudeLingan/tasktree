@@ -99,9 +99,8 @@ int main() {
 				printf("'get' command requires a task path\n");
 			}
 			else {
-				int64_t *taskpath = string_to_id_path(input.items[1]);
-				task *tsk = tasktree_get_task(taskpath);
-				free(taskpath);
+				int64_t id = atoi(input.items[1]);
+				task *tsk = tasktree_get_task_by_id(id);
 				if (tsk == NULL) {
 					printf("task %s not found\n", input.items[1]);
 				}
@@ -115,9 +114,7 @@ int main() {
 				printf("'remove' command requires a task path\n");
 			}
 			else {
-				int64_t *taskpath = string_to_id_path(input.items[1]);
-				tasktree_remove_task_by_path(taskpath);
-				free(taskpath);
+				tasktree_remove_task(tasktree_get_task_by_id(atoi(input.items[1])));
 			}
 		}
 		else if (!strcmp(input.items[0], "done")) {

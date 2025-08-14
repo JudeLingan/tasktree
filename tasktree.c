@@ -93,28 +93,6 @@ task *tasklist_get_task(tasklist tl, int64_t id) {
 	return NULL;
 }
 
-task *tasklist_get_task_by_path(tasklist tl, const int64_t *path) {
-
-	if (path == NULL) {
-		return NULL;
-	}
-
-	task *tsk = NULL;
-
-	for (int i = 0; path[i]; ++i) {
-		tsk = tasklist_get_task(tl, path[i]);
-
-		if (tsk == NULL) {
-			break;
-		}
-		else {
-			tl = tsk->tl;
-		}
-	}
-
-	return tsk;
-}
-
 int tasklist_add_task(tasklist *tl, task t) {
 	if (tasklist_increment_tasks(tl)) {
 		handle_error("tasklist_increment_tasks failed\n");
@@ -374,10 +352,6 @@ void tasktree_print() {
 	}
 }
 
-task *tasktree_get_task(const int64_t *path) {
-	return tasklist_get_task_by_path(rootlist, path);
-}
-
 //TODO: make this neater
 static void tasktree_remove_task_from_db(int64_t id);
 
@@ -421,10 +395,6 @@ void tasktree_remove_task(task *tsk) {
 
 	//remove task from memory
 	tasklist_remove_task(tsk->parent, tsk->id);
-}
-
-void tasktree_remove_task_by_path(const int64_t *path) {
-	tasktree_remove_task(tasklist_get_task_by_path(rootlist, path));
 }
 
 void tasktree_add_task(task tsk, task *parent) {
