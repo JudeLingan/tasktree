@@ -36,7 +36,7 @@ task *tasktree_get_task_by_id(int64_t id);
 void tasktree_load(const char *path);
 void tasktree_unload();
 void tasktree_print();
-void tasktree_add_task(task *tsk, const int64_t *path);
+void tasktree_add_task(task tsk, task *parent);
 task *tasktree_get_task(const int64_t *path);
 void tasktree_remove_task_by_path(const int64_t *path);
 

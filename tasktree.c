@@ -427,18 +427,16 @@ void tasktree_remove_task_by_path(const int64_t *path) {
 	tasktree_remove_task(tasklist_get_task_by_path(rootlist, path));
 }
 
-void tasktree_add_task(task *tsk, const int64_t *path) {
+void tasktree_add_task(task tsk, task *parent) {
 	printf("adding task\n");
 
-	//variable declarations
-	task *parent = tasklist_get_task_by_path(rootlist, path);                             //parent task
-	tasklist *parentlist = path == NULL ? &rootlist : &parent->tl;                        //parent tasklist
+	tasklist *parentlist = parent == NULL ? &rootlist : &parent->tl;                        //parent tasklist
 
 	//create new task in memory
-	tasklist_add_task(parentlist, new_task(tsk->name, tsk->details, tsk->id));
+	tasklist_add_task(parentlist, new_task(tsk.name, tsk.details, tsk.id));
 
 	//bypass database entry if database not found or task is already inserted
-	if (db == NULL || tsk->id > 0) {
+	if (db == NULL || tsk.id > 0) {
 		printf("task already in db\n");
 		return;
 	}
@@ -460,8 +458,8 @@ void tasktree_add_task(task *tsk, const int64_t *path) {
 		NULL,
 		NULL,
 		str_parentid,
-		tsk->name,
-		tsk->details
+		tsk.name,
+		tsk.details
 	);
 
 	free(str_parentid);
