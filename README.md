@@ -1,5 +1,5 @@
 # DESCRIPTION
-* Tasktree is a to-do app that arranges tasks in a tree structure, written entirely in C.
+* Tasktree is a to-do app that arranges tasks in a tree structure
 * It is currently very WIP, so **expect frequent breaking changes**.
 
 # BASIC USAGE
