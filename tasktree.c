@@ -381,12 +381,12 @@ void tasktree_load(const char *path) {
 	//add columns if they do not exist
 	for (int i = 0; i < COLUMNS_length; ++i) {
 		if (!sqlite3_table_has_column(db, "tasks", COLUMNS[i][0])) {
+			char *sql_generate_column = malloc_sprintf("ALTER TABLE tasks ADD %s %s", COLUMNS[i][0], COLUMNS[i][1]);
 			sqlite3_exec_by_format(
 				db,
-				"ALTER TABLE tasks ADD %s",
+				sql_generate_column,
 				NULL,
-				NULL,
-				cols.items[i]
+				NULL
 			);
 		}
 	}
