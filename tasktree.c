@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +7,16 @@
 #include <sqlite3.h>
 #include "tasktree.h"
 #include "util.h"
+
+// ALTER TABLE [table] ADD [column] datatype
+
+static const char COLUMNS[5][2][64] = {
+	{"id",         "INTEGER PRIMARY KEY"},
+	{"parent",     "INTEGER NOT NULL DEFAULT 0"},
+	{"name",       "TEXT"},
+	{"details",    "TEXT"},
+	{"completed",  "INTEGER NOT NULL DEFAULT 0"},
+};
 
 char *get_input() {
 	size_t buffer_length = 0;
@@ -218,23 +229,21 @@ int print_task(task tsk) {
 
 void task_toggle_complete(task *tsk) {
 	if (tsk == NULL) {
-		handle_error("CANNOT COMPLETE NULL TASK\n");
+		handle_error("CANNOT COMPLETE NULL TASK");
 		return;
 	}
 
-	tsk->completed = !tsk->completed;
+	if (db == NULL) {
+		handle_error("CANNOT COMPLETE TASK, NO DATABASE FOUND");
+		return;
+	}
 
 	//update database
-	if (db == NULL) {
-		handle_error("CANNOT COMPLETE TASK, NO DATABASE FOUND\n");
-		return;
-	}
-
-	char *str_completed = malloc_sprintf("%d", tsk->completed);
-	char *str_id = malloc_sprintf("%lld", tsk->id);
-	sqlite3_exec_by_format(
+	char *str_completed = malloc_sprintf("%d", !tsk->completed);
+	char *str_id = malloc_sprintf(PRId64, tsk->id);
+	int rc = sqlite3_exec_by_format(
 		db,
-		"UPDATE tasks SET completed = ? WHERE id = ?;",
+		"UPDATE tasks SET completed = ? WHERE id = ?",
 		NULL,
 		NULL,
 		str_completed,
@@ -242,6 +251,13 @@ void task_toggle_complete(task *tsk) {
 	);
 	free(str_completed);
 	free(str_id);
+
+	if (rc) {
+		handle_error("SQLITE FAILED");
+		return;
+	}
+
+	tsk->completed = !tsk->completed;
 }
 
 /*TASKTREE FUNCTIONS*/
@@ -325,19 +341,57 @@ void tasktree_load(const char *path) {
 
 	if (rc) {
 		handle_error("SQL CONNECTION FAILED\n");
+		exit(1);
 	}
+
+	//generate array of the sql for all columns
+	char *sql_generate_table = malloc_sprintf("CREATE TABLE tasks (");
+	size_t sql_len = strlen(sql_generate_table);
+	stringlist cols = new_stringlist();
+	int COLUMNS_length = sizeof(COLUMNS)/sizeof(COLUMNS[0]);
+	for (int i = 0; i < COLUMNS_length; ++i) {
+		char *col_i = malloc_sprintf("%s %s, ", COLUMNS[i][0], COLUMNS[i][1]);
+		stringlist_append(
+			&cols,
+			col_i
+		);
+		free(col_i);
+		col_i = NULL;
+
+		sql_len += strlen(cols.items[i]);
+		sql_generate_table = (char*)realloc(sql_generate_table, sizeof(char)*(sql_len + 1));
+		sql_generate_table = strcat(sql_generate_table, cols.items[i]);
+	}
+	sql_generate_table[sql_len - 2] = ')';
+	sql_generate_table[sql_len - 1] = ';';
 	
+	//add table if it doesn't exist
 	if (!sqlite3_has_table(db, "tasks")) {
 		handle_error("table tasks not found\n");
-		sqlite3_exec(
+		sqlite3_exec_by_format(
 			db,
-			"CREATE TABLE tasks (id INTEGER PRIMARY KEY, parent INTEGER, name TEXT, details TEXT, completed INTEGER);",
-			NULL,
+			sql_generate_table,
 			NULL,
 			NULL
 		);
 	}
 
+	free(sql_generate_table);
+
+	//add columns if they do not exist
+	for (int i = 0; i < COLUMNS_length; ++i) {
+		if (!sqlite3_table_has_column(db, "tasks", COLUMNS[i][0])) {
+			sqlite3_exec_by_format(
+				db,
+				"ALTER TABLE tasks ADD %s",
+				NULL,
+				NULL,
+				cols.items[i]
+			);
+		}
+	}
+
+	stringlist_free_elements(cols);
 	load_tasks_from_db();
 }
 
@@ -375,7 +429,7 @@ static void tasktree_remove_task_from_db(int64_t id) {
 	char *str_id = malloc_sprintf("%d", id);
 	sqlite3_exec_by_format(
 		db,
-		"DELETE FROM tasks WHERE id=?;",
+		"DELETE FROM tasks WHERE id = ?;",
 		callback_remove_task_from_db,
 		NULL,
 		str_id

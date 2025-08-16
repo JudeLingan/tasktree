@@ -93,9 +93,10 @@ bool stringlist_append(stringlist *sl, char *str) {
 /*STRINGLIST FUNCTIONS*/
 
 stringlist new_stringlist() {
-	stringlist out;
-	out.items = NULL;
-	out.length = 0;
+	stringlist out = {
+		.items = NULL,
+		.length = 0,
+	};
 
 	return out;
 }
@@ -156,10 +157,9 @@ void handle_error(char *err) {
 }
 
 int sqlite3_exec_by_format(sqlite3 *database, const char *format, int (*callback)(void *, int, char **, char **), void *var, ...) {
-	//initial variable declarations
+	//variable declarations
 	va_list args;
 	sqlite3_stmt *stmt = NULL;
-	char *sql_error = NULL;
 
 	sqlite3_prepare_v2(database, format,-1, &stmt, NULL);
 
@@ -171,14 +171,16 @@ int sqlite3_exec_by_format(sqlite3 *database, const char *format, int (*callback
 		if (format[i] == '?') {
 			++num_vals;
 			char *param = va_arg(args, char*);
+
 			//binds value to param and stores error to rc
-			int rc = param ==
-				NULL ? sqlite3_bind_null(stmt, num_vals) :
+			int rc =
+				param == NULL ?
+				sqlite3_bind_null(stmt, num_vals) :
 				sqlite3_bind_text(stmt, num_vals, param, -1, SQLITE_TRANSIENT); 
 
 			//return and output error if binding fails
 			if (rc != SQLITE_OK) {
-				char *err = malloc_sprintf("binding sqlite param \"%s\" failed: %d", param, rc);
+				char *err = malloc_sprintf("binding sqlite param \"%s\" failed with error %d", param, rc);
 				handle_error(err);
 				free(err);
 				sqlite3_finalize(stmt);
@@ -238,18 +240,11 @@ int sqlite3_exec_by_format(sqlite3 *database, const char *format, int (*callback
 	//finalize sqlite_statement once it is no longer needed
 	sqlite3_finalize(stmt);
 
-	//handle sql_error
-	if (sql_error != NULL) {
-		handle_error(sql_error);
-	}
-
-	sqlite3_free(sql_error);
-
 	//if rc is not SQLITE_DONE, return an error
 	return rc == SQLITE_DONE ? 0 : rc;
 }
 
-bool sqlite3_has_table(sqlite3 *database, char *table) {
+bool sqlite3_has_table(sqlite3 *database, const char *table) {
 	bool *has_table = malloc(sizeof(bool));
 	*has_table = false;
 	sqlite3_exec_by_format(
@@ -264,4 +259,18 @@ bool sqlite3_has_table(sqlite3 *database, char *table) {
 	free(has_table);
 	
 	return result;
+}
+
+bool sqlite3_table_has_column(sqlite3 *database, const char *table, const char *column) {
+	return !sqlite3_table_column_metadata(
+		database,
+		NULL,
+		table,
+		column,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	);
 }

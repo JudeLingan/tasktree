@@ -23,10 +23,13 @@ bool string_is_empty(char *str);
 char *malloc_sprintf(const char *format, ...);
 bool is_pure_num(const char *str);
 void handle_error(char *err);
-bool sqlite3_has_table(sqlite3 *database, char *table);
+bool sqlite3_has_table(sqlite3 *database, const char *table);
+bool sqlite3_table_has_column(sqlite3 *database, const char *table, const char *column);
 int sqlite3_exec_by_format(sqlite3 *database, const char *format, int (*callback)(void *, int, char **, char **), void *var, ...);
 int append_string(char *s, char c);
 stringlist split_by_char(const char *str, char ch);
+stringlist new_stringlist();
+bool stringlist_append(stringlist *sl, char *str);
 void stringlist_free_elements(stringlist sl);
 void stringlist_free(stringlist *sl);
 
