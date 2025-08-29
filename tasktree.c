@@ -240,7 +240,7 @@ void task_toggle_complete(task *tsk) {
 
 	//update database
 	char *str_completed = malloc_sprintf("%d", !tsk->completed);
-	char *str_id = malloc_sprintf(PRId64, tsk->id);
+	char *str_id = malloc_sprintf("%" PRId64, tsk->id);
 	int rc = sqlite3_exec_by_format(
 		db,
 		"UPDATE tasks SET completed = ? WHERE id = ?",
