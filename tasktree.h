@@ -22,6 +22,16 @@ struct task {
 	tasklist *parent;
 };
 
+enum Column {
+	ID,
+	PARENT,
+	NAME,
+	DETAILS,
+	DEADLINE,
+	COMPLETED
+};
+
+
 //char *malloc_sprintf(const char* format, ...);
 //int append_string(char *s, char c);
 task new_task(const char *name, const char *data, int64_t id);

@@ -8,13 +8,13 @@
 #include "tasktree.h"
 #include "util.h"
 
-// ALTER TABLE [table] ADD [column] datatype
-
-static const char COLUMNS[5][2][64] = {
+static const char COLUMNS[6][2][64] = {
+	 //name        
 	{"id",         "INTEGER PRIMARY KEY"},
 	{"parent",     "INTEGER NOT NULL DEFAULT 0"},
 	{"name",       "TEXT"},
 	{"details",    "TEXT"},
+	{"deadline",   "TEXT"},
 	{"completed",  "INTEGER NOT NULL DEFAULT 0"},
 };
 
@@ -197,11 +197,7 @@ int task_free(task *tsk) {
 
 int task_add_task(task *root, task branch) {
 	int addfailure = tasklist_add_task(root == NULL ? &rootlist : &root->tl, branch);
-	if (addfailure == 1) {
-		return 1;
-	}
-	
-	return 0;
+	return addfailure;
 }
 
 int print_task(task tsk) {
@@ -258,6 +254,24 @@ void task_toggle_complete(task *tsk) {
 	}
 
 	tsk->completed = !tsk->completed;
+}
+
+void task_set_column(task *tsk, int column, char *value) {
+	char *str_id = malloc_sprintf("%" PRId64, tsk->id);
+	char *format = malloc_sprintf("UPDATE tasks SET %s=? WHERE id=?", COLUMNS[column][0]);
+
+	int rc = sqlite3_exec_by_format(
+		db,
+		format,
+		NULL,
+		NULL,
+		value,
+		str_id
+	);
+
+	if (rc) return;
+
+	tsk->name = value;
 }
 
 /*TASKTREE FUNCTIONS*/
@@ -454,6 +468,32 @@ void tasktree_remove_task(task *tsk) {
 void tasktree_add_task(task tsk, task *parent) {
 	printf("adding task\n");
 
+	//get var parentid
+	int64_t parentid = 0;
+
+	if (parent != NULL) {
+		parentid = parent->id;
+	}
+	
+	//execute sqlite code
+	char *str_parentid = malloc_sprintf("%d", parentid);
+	char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (?, ?, ?);";
+
+	int rc = sqlite3_exec_by_format(
+		db,
+		sql_format,
+		NULL,
+		NULL,
+		str_parentid,
+		tsk.name,
+		tsk.details
+	);
+
+	//don't add to memory if sql fails
+	if (rc) return;
+
+	free(str_parentid);
+
 	tasklist *parentlist = parent == NULL ? &rootlist : &parent->tl;                        //parent tasklist
 
 	//create new task in memory
@@ -465,30 +505,6 @@ void tasktree_add_task(task tsk, task *parent) {
 		return;
 	}
 
-	//enter new task into database
-	int64_t parentid = 0;
-
-	if (parent != NULL) {
-		parentid = parent->id;
-	}
-	
-	//execute sqlite code
-	char *str_parentid = malloc_sprintf("%d", parentid);
-	char sql_format[] = "INSERT INTO tasks (parent, name, details) VALUES (?, ?, ?);";
-
-	sqlite3_exec_by_format(
-		db,
-		sql_format,
-		NULL,
-		NULL,
-		str_parentid,
-		tsk.name,
-		tsk.details
-	);
-
-	free(str_parentid);
-
 	//set id of task to the one given by the database
 	parentlist->tasks[parentlist->ntasks - 1].id = sqlite3_last_insert_rowid(db);
 }
-

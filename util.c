@@ -145,6 +145,8 @@ void stringlist_free_elements(stringlist sl) {
 		free(sl.items[i]);
 	}
 	free(sl.items);
+	
+	sl.length = 0;
 }
 
 void stringlist_free(stringlist *sl) {
