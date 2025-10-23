@@ -5,11 +5,12 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sqlite3.h>
+#include <time.h>
 #include "tasktree.h"
 #include "util.h"
 
 static const char COLUMNS[6][2][64] = {
-	 //name        
+	 //name        //type
 	{"id",         "INTEGER PRIMARY KEY"},
 	{"parent",     "INTEGER NOT NULL DEFAULT 0"},
 	{"name",       "TEXT"},
@@ -256,7 +257,7 @@ void task_toggle_complete(task *tsk) {
 	tsk->completed = !tsk->completed;
 }
 
-void task_set_column(task *tsk, int column, char *value) {
+void task_set_column(task *tsk, enum Column column, char *value) {
 	char *str_id = malloc_sprintf("%" PRId64, tsk->id);
 	char *format = malloc_sprintf("UPDATE tasks SET %s=? WHERE id=?", COLUMNS[column][0]);
 
@@ -272,6 +273,12 @@ void task_set_column(task *tsk, int column, char *value) {
 	if (rc) return;
 
 	tsk->name = value;
+}
+
+void task_set_deadline(task *tsk, struct tm time) {
+	// convert struct to string
+	// set deadline in sql
+	// set deadline in memory
 }
 
 /*TASKTREE FUNCTIONS*/

@@ -39,6 +39,7 @@ void task_free_elements(task tsk);
 int task_free(task *tsk);
 int task_add_task(task* branch, task tsk);
 void task_toggle_complete(task *tsk);
+void task_set_column(task *tsk, enum Column column, char *value);
 int print_task(task tsk);
 char *get_input();
 stringlist stringlist_input();

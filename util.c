@@ -73,6 +73,22 @@ int append_string(char *s, char c) {
 	return 0;
 }
 
+struct tm generate_tm(int year, int mon, int day, int hour, int min, int sec){
+	struct tm out = {
+		.tm_year = year - 1900,
+		.tm_mon = mon,
+		.tm_mday = day,
+		.tm_hour = hour,
+		.tm_min = min,
+		.tm_sec = sec,
+		.tm_isdst = -1,
+	};
+
+	return out;
+}
+
+/*STRINGLIST FUNCTIONS*/
+
 bool stringlist_append(stringlist *sl, char *str) {
 	sl->length += 1;
 	char **new_items = (char**)realloc(sl->items, sizeof(char*)*(sl->length));
@@ -89,8 +105,6 @@ bool stringlist_append(stringlist *sl, char *str) {
 
 	return false;
 }
-
-/*STRINGLIST FUNCTIONS*/
 
 stringlist new_stringlist() {
 	stringlist out = {
