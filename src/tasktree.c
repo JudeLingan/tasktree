@@ -257,7 +257,7 @@ void task_toggle_complete(task *tsk) {
 	tsk->completed = !tsk->completed;
 }
 
-void task_set_column(task *tsk, enum Column column, char *value) {
+int task_set_column(task *tsk, enum Column column, char *value) {
 	char *str_id = malloc_sprintf("%" PRId64, tsk->id);
 	char *format = malloc_sprintf("UPDATE tasks SET %s=? WHERE id=?", COLUMNS[column][0]);
 
@@ -270,15 +270,22 @@ void task_set_column(task *tsk, enum Column column, char *value) {
 		str_id
 	);
 
-	if (rc) return;
-
-	tsk->name = value;
+	return rc;
 }
 
-void task_set_deadline(task *tsk, struct tm time) {
-	// convert struct to string
+void task_set_deadline(task *tsk, const struct tm *time) {
+	// generate string deadline
+	char deadline[20];
+	strftime(deadline, 20, "%Y-%m-%d %H:%M:%S", time);
+
 	// set deadline in sql
+	int rc = task_set_column(tsk, DEADLINE, deadline);
+	if (rc) { //do not modify memory if sql allocation fails
+		return;
+	}
+
 	// set deadline in memory
+	memcpy(&tsk->deadline, time, sizeof(*time));
 }
 
 /*TASKTREE FUNCTIONS*/

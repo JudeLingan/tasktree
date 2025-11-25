@@ -113,7 +113,7 @@ int main() {
 					tasktree_remove_task(tasktree_get_task_by_id(atoi(input.items[1])));
 				}
 				else if (!strcmp(input.items[0], "deadline")) {
-					task_set_column(tasktree_get_task_by_id(atoi(input.items[1])), DEADLINE, input.items[0])
+					task_set_column(tasktree_get_task_by_id(atoi(input.items[1])), DEADLINE, input.items[0]);
 				}
 				else {
 					printf("command not found or wrong number of arguments");

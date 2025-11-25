@@ -3,10 +3,6 @@ project(tasktree C)
 find_package(SQLite3 REQUIRED)
 set(SOURCE_FILES
 	main.c
-	tasktree.h
-	tasktree.c
-	util.h
-	util.c
 )
 add_executable(tasktree ${SOURCE_FILES})
 set_target_properties(tasktree PROPERTIES C_STANDARD 11)
