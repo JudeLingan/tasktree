@@ -16,8 +16,6 @@ add_subdirectory(util)
 # linking executables
 target_link_libraries(Tasktree
 	PRIVATE
-		SQLite::SQLite3
-	PRIVATE
 		Tasktreelib
 )
 

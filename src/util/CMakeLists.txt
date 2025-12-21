@@ -8,3 +8,8 @@ target_sources(Util
 		FILES
 			util.h
 )
+
+target_link_libraries(Util
+	PRIVATE
+		unofficial::sqlite3::sqlite3
+)
