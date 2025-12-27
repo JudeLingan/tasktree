@@ -24,4 +24,6 @@ target_link_libraries(Test
 		Util
 	PRIVATE
 		Tasktreelib
+	PRIVATE
+		unofficial::cunit::cunit
 )

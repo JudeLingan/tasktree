@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <CUnit/CUnit.h>
 #include "util.h"
 #include "tasktree.h"
 
