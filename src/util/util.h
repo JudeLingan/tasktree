@@ -6,6 +6,8 @@
 #define UTIL_H
 
 #define UNUSED(x) (void)(x)
+#define STR(x) #x
+#define CONCAT(x, y) x##y
 
 #define RED(string)     "\x1b[31m" string "\x1b[0m"
 #define GREEN(string)   "\x1b[32m" string "\x1b[0m"
