@@ -8,6 +8,10 @@
 #include "util.h"
 #include "tasktree.h"
 
+/* GLOBAL MACROS */
+#define STR(x) #x
+#define CONCAT(x, y) x##y
+
 static int total_tests = 0;
 static int passed_tests = 0;
 
@@ -66,7 +70,7 @@ int main() {
 	ADD_TEST(util_suite, is_pure_num);
 
 	CU_basic_set_mode(CU_BRM_VERBOSE);
-	CU_basic_run_suite(util_suite);
+	CU_basic_run_tests();
 	printf("%d\n", CU_get_number_of_suites_run());
 
 	CU_cleanup_registry();
