@@ -48,13 +48,17 @@ bool string_is_empty(char *str) {
 	return false;
 }
 
+//returns true if string is not void or empty and only contains integers
 bool is_pure_num(const char *str) {
+	if (str == NULL) return false;
+	if (!strcmp(str, "")) return false;
+
 	for (int i = 0; str[i] != '\0'; ++i) {
-		printf("%d", i);
 		if(!isdigit(str[i])) {
 			return false;
 		}
 	}
+
 	return true;
 }
 
