@@ -1,30 +1,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <string.h>
 #include <assert.h>
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
 #include "util.h"
 #include "tasktree.h"
 
-static int total_tests = 0;
-static int passed_tests = 0;
-
 /*TESTS*/
-char* test_malloc_snprintf(void* val) {
+void test_malloc_snprintf() {
 	char *testvar = NULL;
-	char *out = NULL;
 	testvar = malloc_sprintf("Number: %d String: \"%s\"\n", 5, "Hello World!");
-	if (testvar == NULL) {
-		out = "MALLOC_SPRINTF FAILED";
-	}
-	else if (strcmp(testvar, "Number: 5 String: \"Hello World!\"\n")) {
-		out = testvar;
-	}
-	if (testvar != NULL) free(testvar);
 
-	return out;
+	CU_ASSERT_PTR_NOT_NULL(testvar);
+	CU_ASSERT_STRING_EQUAL(testvar, "Number: 5 String: \"Hello World!\"\n");
+
+	if (testvar != NULL) free(testvar);
 }
 
 void test_is_pure_num() {
@@ -50,6 +41,7 @@ int main() {
 	}
 
 	ADD_TEST(util_suite, is_pure_num);
+	ADD_TEST(util_suite, malloc_snprintf);
 
 	CU_basic_set_mode(CU_BRM_VERBOSE);
 	CU_basic_run_tests();
