@@ -8,10 +8,6 @@
 #include "util.h"
 #include "tasktree.h"
 
-/* GLOBAL MACROS */
-#define STR(x) #x
-#define CONCAT(x, y) x##y
-
 static int total_tests = 0;
 static int passed_tests = 0;
 
