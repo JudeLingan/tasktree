@@ -38,7 +38,7 @@ static char *malloc_vsprintf(const char* restrict format, va_list args) {
 
 /*GENERAL FUNCTIONS*/
 
-bool string_is_empty(char *str) {
+bool string_is_empty(const char *str) {
 	if (str == NULL) {
 		return true;
 	}
