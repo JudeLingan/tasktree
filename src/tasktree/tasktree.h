@@ -34,8 +34,6 @@ enum Column {
 };
 
 
-//char *malloc_sprintf(const char* format, ...);
-//int append_string(char *s, char c);
 task new_task(const char *name, const char *data, int64_t id);
 void task_free_elements(task tsk);
 int task_free(task *tsk);
