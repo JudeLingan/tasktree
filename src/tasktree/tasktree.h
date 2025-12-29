@@ -41,7 +41,6 @@ int task_add_task(task* branch, task tsk);
 void task_toggle_complete(task *tsk);
 int task_set_column(task *tsk, enum Column column, char *value);
 int print_task(task tsk);
-stringlist stringlist_input();
 task *tasktree_get_task_by_id(int64_t id);
 void tasktree_load(const char *path);
 void tasktree_unload();

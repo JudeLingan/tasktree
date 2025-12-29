@@ -22,14 +22,6 @@ static const char COLUMNS[6][2][64] = {
 static sqlite3 *db = NULL;
 static tasklist rootlist = {.tasks = NULL, .ntasks = 0};
 
-//gets a line of input and returns it as a stringlist
-stringlist stringlist_input() {
-	char *raw = get_input();
-	stringlist output = split_by_char(raw, ' ');
-	free(raw);
-	return output;
-}
-
 /*TASKLIST FUNCTIONS*/
 
 tasklist new_tasklist() {

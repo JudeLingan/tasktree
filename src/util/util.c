@@ -115,6 +115,14 @@ char *get_input() {
 	return str;
 }
 
+//gets a line of input and returns it as a stringlist
+stringlist stringlist_input() {
+	char *raw = get_input();
+	stringlist output = split_by_char(raw, ' ');
+	free(raw);
+	return output;
+}
+
 /*STRINGLIST FUNCTIONS*/
 
 bool stringlist_append(stringlist *sl, char *str) {
