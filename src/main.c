@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "tasktree.h"
+#include "util.h"
 
 #if defined(_WIN32)
 #define LOCALDBPATH "\\AppData\\Local\\tasktree.db"

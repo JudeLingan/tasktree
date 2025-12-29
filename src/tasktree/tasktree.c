@@ -19,31 +19,6 @@ static const char COLUMNS[6][2][64] = {
 	{"completed",  "INTEGER NOT NULL DEFAULT 0"},
 };
 
-char *get_input() {
-	size_t buffer_length = 0;
-	char *buffer = (char*)malloc(sizeof(char*));
-	*buffer = '\0';
-
-	//read input until newline
-	char c;
-	int i = 0;
-	c = fgetc(stdin);
-	while (c != EOF && c != '\n') {
-		buffer = realloc(buffer, sizeof(char)*(i + 2));
-		buffer[i] = c;
-		buffer[i + 1] = '\0';
-		++i;
-		c = fgetc(stdin);
-	}
-	
-	char *str = (char*)malloc((strlen(buffer) + 1)*sizeof(char));
-	strncpy(str, buffer, strlen(buffer) + 1);
-
-	free(buffer);
-
-	return str;
-}
-
 //gets a line of input and returns it as a stringlist
 stringlist stringlist_input() {
 	char *raw = get_input();

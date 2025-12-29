@@ -90,6 +90,31 @@ struct tm generate_tm(int year, int mon, int day, int hour, int min, int sec){
 	return out;
 }
 
+char *get_input() {
+	size_t buffer_length = 0;
+	char *buffer = (char*)malloc(sizeof(char*));
+	*buffer = '\0';
+
+	//read input until newline
+	char c;
+	int i = 0;
+	c = fgetc(stdin);
+	while (c != EOF && c != '\n') {
+		buffer = realloc(buffer, sizeof(char)*(i + 2));
+		buffer[i] = c;
+		buffer[i + 1] = '\0';
+		++i;
+		c = fgetc(stdin);
+	}
+
+	char *str = (char*)malloc((strlen(buffer) + 1)*sizeof(char));
+	strncpy(str, buffer, strlen(buffer) + 1);
+
+	free(buffer);
+
+	return str;
+}
+
 /*STRINGLIST FUNCTIONS*/
 
 bool stringlist_append(stringlist *sl, char *str) {
