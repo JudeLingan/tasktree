@@ -24,7 +24,7 @@ static tasklist rootlist = {.tasks = NULL, .ntasks = 0};
 
 /*TASKLIST FUNCTIONS*/
 
-tasklist new_tasklist() {
+static tasklist new_tasklist() {
 	tasklist tl = {
 		.tasks = NULL,
 		.ntasks = 0
@@ -33,7 +33,7 @@ tasklist new_tasklist() {
 	return tl;
 }
 
-int tasklist_increment_tasks(tasklist* tl) {
+static int tasklist_increment_tasks(tasklist* tl) {
 	task *new_tasks;
 	new_tasks = (task*)realloc(tl->tasks, (tl->ntasks + 1)*sizeof(task));
 
@@ -48,7 +48,7 @@ int tasklist_increment_tasks(tasklist* tl) {
 	return 0;
 }
 
-bool tasklist_has_task(tasklist tl, const char *name) {
+static bool tasklist_has_task(tasklist tl, const char *name) {
 	if (name == NULL) return false;
 
 	for (int i = 0; i < tl.ntasks; ++i) {
@@ -60,7 +60,7 @@ bool tasklist_has_task(tasklist tl, const char *name) {
 	return false;
 }
 
-task *tasklist_get_task(tasklist tl, int64_t id) {
+static task *tasklist_get_task(tasklist tl, int64_t id) {
 	//get task
 	for (int i = 0; i < tl.ntasks; ++i) {
 		if(tl.tasks[i].id == id) {
@@ -72,7 +72,7 @@ task *tasklist_get_task(tasklist tl, int64_t id) {
 	return NULL;
 }
 
-int tasklist_add_task(tasklist *tl, task t) {
+static int tasklist_add_task(tasklist *tl, task t) {
 	if (tasklist_increment_tasks(tl)) {
 		handle_error("tasklist_increment_tasks failed\n");
 		return 1;
@@ -84,7 +84,7 @@ int tasklist_add_task(tasklist *tl, task t) {
 	return 0;
 }
 
-void tasklist_remove_task(tasklist *tl, int64_t id) {
+static void tasklist_remove_task(tasklist *tl, int64_t id) {
 	//prevent crashes
 	if (tl == NULL) {
 		handle_error("TASK HAS NULL PARENT");
@@ -108,7 +108,7 @@ void tasklist_remove_task(tasklist *tl, int64_t id) {
 	*tl = new_tl;
 }
 
-void tasklist_free_elements(tasklist *tl) {
+static void tasklist_free_elements(tasklist *tl) {
 	for (int i = 0; i < tl->ntasks; ++i) {
 		task_free_elements(tl->tasks[i]);
 	}
@@ -119,7 +119,7 @@ void tasklist_free_elements(tasklist *tl) {
 	tl->tasks = NULL;
 }
 
-task *tasklist_get_task_by_id(tasklist tl, int64_t id) {
+static task *tasklist_get_task_by_id(tasklist tl, int64_t id) {
 	for (int i = 0; i < tl.ntasks; ++i) {
 		task *in = tasklist_get_task_by_id(tl.tasks[i].tl, id);
 		if (in != NULL) {
