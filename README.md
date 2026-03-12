@@ -1,6 +1,7 @@
 # DESCRIPTION
 * Tasktree is a to-do app that arranges tasks in a tree structure
-* It is currently very WIP, so **expect frequent breaking changes**.
+* The idea is to have subtasks of subtasks of subtasks.
+* It is currently being rewritten in C++: see my tasktree-cpp repository.
 
 # COMPILING
 * make sure cmake, a c compiler, and vcpkg are installed
@@ -13,10 +14,3 @@
 * use "complete [task]" to mark it as completed
 * Use *"remove [task]"* to remove it.
 * Use *"list"* to list tasks.
-
-# GOALS
-- [X] Windows support
-- [ ] Store creation time
-- [ ] Set deadlines
-- [ ] Make a GUI, probably using GTK
-- [ ] Color-code tasks
